@@ -1,100 +1,838 @@
-require('dotenv').config();
-const express = require('express');
-const multer = require('multer');
-const rateLimit = require('express-rate-limit');
-const OpenAI = require('openai');
-const path = require('path');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.disable('x-powered-by');
-app.use(express.json({ limit: '1mb' }));
-app.use('/api/', rateLimit({ windowMs: 60 * 1000, limit: 12, standardHeaders: true, legacyHeaders: false }));
+:root {
+  --bg: #090d18;
+  --panel: #101626;
+  --panel2: #141c2e;
+  --line: #273149;
+  --text: #f4f6fc;
+  --muted: #98a3b9;
+  --mint: #70f0c0;
+  --violet: #a99bff;
+  --red: #ff718b;
+  --amber: #ffd58a;
+  --font: 'DM Sans', sans-serif;
+  --display: 'Space Grotesk', sans-serif;
+  color-scheme: dark;
+}
 
-// Expose only the files the browser needs, not server.js, .env, or package files.
-app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/index.html', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/styles.css', (_req, res) => res.sendFile(path.join(__dirname, 'styles.css')));
-app.get('/app.js', (_req, res) => res.sendFile(path.join(__dirname, 'app.js')));
+* {
+  box-sizing: border-box;
+}
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
-  fileFilter: (_req, file, cb) => {
-    if (/^image\/(png|jpeg|webp)$/i.test(file.mimetype)) cb(null, true);
-    else cb(new Error('PrzeÅlij plik PNG, JPG lub WEBP.'));
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(ellipse at 78% 4%, rgba(73, 69, 142, .24), transparent 32%),
+    radial-gradient(ellipse at 0% 45%, rgba(34, 130, 112, .08), transparent 34%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+.container,
+main,
+.page-shell {
+  width: min(1180px, calc(100% - 40px));
+  margin-inline: auto;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 76px;
+  padding: 14px max(20px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid rgba(152, 163, 185, .15);
+  background: rgba(9, 13, 24, .86);
+  backdrop-filter: blur(18px);
+}
+
+.brand,
+.logo,
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.04em;
+}
+
+.brand-mark,
+.logo-mark,
+.brand-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(112, 240, 192, .38);
+  border-radius: 12px;
+  background: rgba(112, 240, 192, .1);
+  color: var(--mint);
+  font-weight: 700;
+}
+
+.nav,
+.topnav,
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav a,
+.topnav a,
+.nav-links a {
+  color: var(--muted);
+  font-size: 13px;
+  transition: color .2s ease;
+}
+
+.nav a:hover,
+.topnav a:hover,
+.nav-links a:hover {
+  color: var(--text);
+}
+
+.btn,
+.button,
+button.primary,
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 11px 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--mint);
+  color: #07130f;
+  font-weight: 700;
+  transition: transform .18s ease, filter .18s ease, border-color .18s ease;
+}
+
+.btn:hover,
+.button:hover,
+button.primary:hover,
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.btn-secondary,
+.button-secondary,
+.btn-ghost,
+button.secondary {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, .035);
+  color: var(--text);
+}
+
+.hero {
+  position: relative;
+  padding: clamp(54px, 8vw, 104px) 0 56px;
+}
+
+.hero-inner {
+  max-width: 850px;
+}
+
+.eyebrow,
+.kicker,
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  color: var(--mint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before,
+.kicker::before,
+.section-eyebrow::before {
+  width: 20px;
+  height: 1px;
+  background: currentColor;
+  content: "";
+}
+
+.hero h1,
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(40px, 6.5vw, 76px);
+  font-weight: 600;
+  letter-spacing: -.065em;
+  line-height: 1.04;
+}
+
+.hero h1 span,
+h1 span,
+.gradient-text {
+  color: var(--mint);
+}
+
+.hero p,
+.hero-copy,
+.lead {
+  max-width: 680px;
+  margin: 24px 0 0;
+  color: var(--muted);
+  font-size: clamp(15px, 1.7vw, 18px);
+}
+
+.hero-actions,
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.hero-meta,
+.trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hero-meta span,
+.trust-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+section {
+  padding: 54px 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.section-heading h2,
+section h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(27px, 4vw, 42px);
+  letter-spacing: -.045em;
+  line-height: 1.15;
+}
+
+.section-heading p {
+  max-width: 520px;
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.workspace,
+.analysis-layout,
+.app-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.panel,
+.card,
+.workspace-card,
+.upload-card,
+.result-card,
+.signal-card,
+.feature-card,
+.stat-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(20, 28, 46, .94), rgba(13, 19, 33, .96));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .13);
+}
+
+.panel h3,
+.card h3,
+.workspace-card h3,
+.upload-card h3,
+.result-card h3,
+.signal-card h3 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: -.025em;
+}
+
+.panel p,
+.card p,
+.workspace-card p,
+.upload-card p,
+.result-card p,
+.signal-card p {
+  color: var(--muted);
+}
+
+.form-group,
+.field,
+.form-field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+label,
+.field-label {
+  color: #dbe2f1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea,
+.input,
+.select {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid #303b55;
+  border-radius: 11px;
+  background: #0b1120;
+  color: var(--text);
+  outline: none;
+}
+
+textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #65718a;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(112, 240, 192, .7);
+}
+
+.help-text,
+.field-help,
+.muted,
+small {
+  color: var(--muted);
+}
+
+small {
+  font-size: 12px;
+}
+
+.dropzone,
+.upload-zone,
+.file-drop {
+  display: grid;
+  min-height: 170px;
+  place-items: center;
+  padding: 24px;
+  border: 1px dashed #465575;
+  border-radius: 15px;
+  background: rgba(9, 13, 24, .55);
+  text-align: center;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.dropzone:hover,
+.upload-zone:hover,
+.file-drop:hover {
+  border-color: var(--mint);
+  background: rgba(112, 240, 192, .04);
+}
+
+.dropzone strong,
+.upload-zone strong,
+.file-drop strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.dropzone p,
+.upload-zone p,
+.file-drop p {
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+input[type="file"] {
+  padding: 8px;
+  font-size: 12px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #273149;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.status,
+.badge,
+.pill,
+.tag,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid rgba(152, 163, 185, .2);
+  border-radius: 999px;
+  background: rgba(152, 163, 185, .08);
+  color: #d2d9e8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mint);
+}
+
+.badge.success,
+.status.success,
+.positive {
+  color: var(--mint);
+}
+
+.badge.warning,
+.status.warning,
+.warning {
+  color: var(--amber);
+}
+
+.badge.danger,
+.status.danger,
+.negative {
+  color: var(--red);
+}
+
+.metrics,
+.stats-grid,
+.feature-grid,
+.cards-grid,
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric,
+.stat {
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(9, 13, 24, .5);
+}
+
+.metric-label,
+.stat-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-value,
+.stat-value {
+  margin-top: 6px;
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+
+.metric-change {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--mint);
+}
+
+.signal-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.signal-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--mint);
+  content: "";
+}
+
+.signal-card h3 {
+  margin-top: 12px;
+}
+
+.signal-card p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.signal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.signal-value {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -.05em;
+}
+
+.signal-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chart-wrap,
+.chart-container,
+.chart-panel {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(8, 12, 22, .7);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.notice,
+.alert,
+.error-message,
+.success-message {
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .035);
+  font-size: 13px;
+}
+
+.error-message,
+.alert.error {
+  border-color: rgba(255, 113, 139, .35);
+  color: var(--red);
+}
+
+.success-message,
+.alert.success {
+  border-color: rgba(112, 240, 192, .35);
+  color: var(--mint);
+}
+
+.loading,
+.spinner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 22px;
+  color: var(--muted);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #35405a;
+  border-top-color: var(--mint);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
-});
+}
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, aiConfigured: Boolean(process.env.OPENAI_API_KEY) }));
+.divider {
+  height: 1px;
+  margin: 22px 0;
+  background: var(--line);
+}
 
-const resultSchema = {
-  type: 'object', additionalProperties: false,
-  properties: {
-    signal: { type: 'string', enum: ['BUY', 'SELL', 'WAIT'] },
-    score: { type: 'integer', minimum: 0, maximum: 100 },
-    risk: { type: 'string', enum: ['NISKIE', 'UMIARKOWANE', 'WYSOKIE', 'NIEZNANE'] },
-    risk_reason: { type: 'string' },
-    entry: { type: 'string' },
-    stop_loss: { type: 'string' },
-    take_profit_1: { type: 'string' },
-    take_profit_2: { type: 'string' },
-    reward_risk: { type: 'string' },
-    rationale: { type: 'string' },
-    invalidation: { type: 'string' },
-    analysis: { type: 'string' }
-  },
-  required: ['signal','score','risk','risk_reason','entry','stop_loss','take_profit_1','take_profit_2','reward_risk','rationale','invalidation','analysis']
-};
+.list,
+ul.clean-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
 
-app.post('/api/analyze', (req, res) => {
-  upload.single('chart')(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message || 'Nie udaÅo siÄ przesÅaÄ pliku.' });
-    try {
-      if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'AI nie jest skonfigurowana. Dodaj OPENAI_API_KEY w ustawieniach Årodowiska Render.' });
-      if (!req.file) return res.status(400).json({ error: 'Dodaj zdjÄcie wykresu.' });
-      const instrument = String(req.body.instrument || 'Nie podano').slice(0, 100);
-      const timeframe = String(req.body.timeframe || 'Nie podano').slice(0, 50);
-      const question = String(req.body.question || '').slice(0, 1200);
-      const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      const prompt = `JesteÅ ChartMentor AI, edukacyjnym asystentem analizy technicznej. Odpowiadaj po polsku. Analizuj tylko informacje widoczne na przesÅanym obrazie. Nie wymyÅlaj cen, wskaÅºnikÃ³w, interwaÅÃ³w ani formacji. JeÅli wykres jest nieczytelny lub nie daje podstaw do scenariusza, wybierz WAIT. BUY i SELL oznaczajÄ wyÅÄcznie moÅ¼liwy scenariusz edukacyjny, nie polecenie zawarcia transakcji.
+.list li,
+ul.clean-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #d4dced;
+}
 
-Instrument: ${instrument}
-InterwaÅ: ${timeframe}
-Pytanie uÅ¼ytkownika: ${question || 'Brak'}
+.list li::before,
+ul.clean-list li::before {
+  margin-top: 1px;
+  color: var(--mint);
+  content: "✓";
+}
 
-ZwrÃ³Ä dane zgodne ze schematem JSON. signal: BUY dla moÅ¼liwego scenariusza wzrostowego, SELL dla spadkowego, WAIT gdy brak wiarygodnej przewagi lub obraz jest niewystarczajÄcy. score to jakoÅÄ/kompletnoÅÄ przesÅanek w skali 0-100, NIGDY prawdopodobieÅstwo zysku. risk to ocena ryzyka interpretacji, nie ryzyka rynkowego wyliczonego z danych. Pola entry, stop_loss, take_profit_1, take_profit_2 i reward_risk majÄ zawieraÄ krÃ³tkie poziomy/opis albo dokÅadnie âNie da siÄ wiarygodnie okreÅliÄ z tego obrazuâ. Nigdy nie zgaduj cen. Konkretne poziomy podawaj tylko gdy skala i poziomy sÄ czytelne. JeÅli nie ma podstaw do okreÅlenia poziomÃ³w, nie twÃ³rz ich na siÅÄ. Nie przedstawiaj tego jako aktualnego sygnaÅu rynkowego â nie masz dostÄpu do bieÅ¼Äcych notowaÅ.
+footer,
+.footer {
+  margin-top: 70px;
+  padding: 30px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
 
-W rationale uzasadnij scenariusz w 2-4 zdaniach. invalidation opisuje, co osÅabiÅoby/zanegowaÅo interpretacjÄ. analysis to szczegÃ³Åowa, czytelna analiza w jÄzyku polskim z nagÅÃ³wkami: Co widaÄ na wykresie; Trend i struktura; MoÅ¼liwe formacje; Wsparcia i opory; Scenariusz wzrostowy; Scenariusz spadkowy; Lekcja dla poczÄtkujÄcego; Ograniczenia obrazu; Pytanie kontrolne. WyraÅºnie odrÃ³Å¼niaj obserwacje od hipotez. Dodaj, Å¼e to materiaÅ edukacyjny, a nie rekomendacja inwestycyjna.`;
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const response = await client.responses.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-        input: [{ role: 'user', content: [
-          { type: 'input_text', text: prompt },
-          { type: 'input_image', image_url: dataUrl, detail: 'high' }
-        ] }],
-        text: { format: { type: 'json_schema', name: 'chartmentor_analysis', strict: true, schema: resultSchema } },
-        max_output_tokens: 2200
-      });
-      let result;
-      try { result = JSON.parse(response.output_text || '{}'); }
-      catch { return res.status(502).json({ error: 'AI zwrÃ³ciÅa nieprawidÅowy format analizy. SprÃ³buj ponownie.' }); }
-      if (!['BUY', 'SELL', 'WAIT'].includes(result.signal)) result.signal = 'WAIT';
-      if (!Number.isInteger(result.score)) result.score = 0;
-      res.json({ ...result, analysis: result.analysis || 'Brak szczegÃ³Åowej analizy.' });
-    } catch (e) {
-      console.error('Analysis request failed:', e?.status || '', e?.message || 'unknown error');
-      if (e?.status === 401) return res.status(502).json({ error: 'Klucz API zostaÅ odrzucony. SprawdÅº OPENAI_API_KEY w ustawieniach Render.' });
-      if (e?.status === 429) return res.status(429).json({ error: 'Limit API zostaÅ osiÄgniÄty. SprawdÅº rozliczenia i limity OpenAI API.' });
-      if (e?.status === 400) return res.status(400).json({ error: 'Nie udaÅo siÄ przetworzyÄ obrazu. SprÃ³buj przesÅaÄ wyraÅºniejszy plik PNG, JPG lub WEBP.' });
-      res.status(500).json({ error: 'WystÄpiÅ problem podczas analizy. SprÃ³buj ponownie za chwilÄ.' });
-    }
-  });
-});
+footer a,
+.footer a {
+  color: var(--mint);
+}
 
-app.use((err, _req, res, _next) => {
-  console.error('Request error:', err.message);
-  res.status(400).json({ error: err.message || 'NieprawidÅowe Å¼Ädanie.' });
-});
+.hidden,
+[hidden] {
+  display: none !important;
+}
 
-app.listen(PORT, () => console.log(`ChartMentor AI dziaÅa na porcie ${PORT}`));
+.text-muted {
+  color: var(--muted);
+}
+
+.text-mint {
+  color: var(--mint);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mt-0 {
+  margin-top: 0 !important;
+}
+
+.mt-1 {
+  margin-top: 8px !important;
+}
+
+.mt-2 {
+  margin-top: 16px !important;
+}
+
+.mt-3 {
+  margin-top: 24px !important;
+}
+
+@media (max-width: 800px) {
+  .topbar {
+    min-height: 66px;
+    padding: 12px 20px;
+  }
+
+  .nav,
+  .topnav,
+  .nav-links {
+    gap: 12px;
+  }
+
+  .nav a,
+  .topnav a,
+  .nav-links a {
+    font-size: 12px;
+  }
+
+  .workspace,
+  .analysis-layout,
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .metrics,
+  .stats-grid,
+  .feature-grid,
+  .cards-grid,
+  .signal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .container,
+  main,
+  .page-shell {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .nav,
+  .topnav,
+  .nav-links {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .hero {
+    padding-top: 46px;
+  }
+
+  .hero h1,
+  h1 {
+    font-size: clamp(36px, 11vw, 52px);
+  }
+
+  section {
+    padding: 38px 0;
+  }
+
+  .panel,
+  .card,
+  .workspace-card,
+  .upload-card,
+  .result-card,
+  .signal-card,
+  .feature-card,
+  .stat-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .metrics,
+  .stats-grid,
+  .feature-grid,
+  .cards-grid,
+  .signal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .btn,
+  .hero-actions .button,
+  .button-row .btn {
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 10px;
+  }
+}
