@@ -1,259 +1,128 @@
-'use strict';
-const form = document.querySelector('#analysis-form');
-const fileInput = document.querySelector('#chart-file');
-const dropzone = document.querySelector('#dropzone');
-const preview = document.querySelector('#image-preview');
-const emptyState = document.querySelector('#result-empty');
-const loadingState = document.querySelector('#result-loading');
-const resultContent = document.querySelector('#result-content');
-const errorBox = document.querySelector('#result-error');
-const status = document.querySelector('#result-status');
-const submitButton = form.querySelector('button[type="submit"]');
-const resetButton = document.querySelector('#reset-button');
-let previewUrl = null;
-let isAnalyzing = false;
-function setFile(file) {
-  if (!file) return;
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-    showError('Wybierz plik PNG, JPG lub WEBP.');
-    fileInput.value = '';
-    return;
+(() => {
+  const $ = (selector) => document.querySelector(selector);
+  const form = $('#analysis-form');
+  const fileInput = $('#chart-file');
+  const dropzone = $('#dropzone');
+  const preview = $('#image-preview');
+  const fileName = $('#file-name');
+  const analyzeButton = $('#analyze-button');
+  const empty = $('#result-empty');
+  const loading = $('#result-loading');
+  const content = $('#result-content');
+  const errorBox = $('#result-error');
+  const status = $('#result-status');
+  let lastFile = null;
+  let previewUrl = null;
+
+  const setView = (view) => {
+    empty.hidden = view !== 'empty';
+    loading.hidden = view !== 'loading';
+    content.hidden = view !== 'content';
+    errorBox.hidden = view !== 'error';
+  };
+  const setStatus = (text, type = '') => {
+    status.textContent = text;
+    status.className = `status-badge ${type}`.trim();
+  };
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Minimal Markdown renderer; raw HTML is escaped before formatting.
+  function renderMarkdown(text) {
+    const safe = escapeHtml(text);
+    return safe.split(/\n{2,}/).map((block) => {
+      const trimmed = block.trim();
+      if (!trimmed) return '';
+      if (/^###\s/.test(trimmed)) return `<h4>${trimmed.replace(/^###\s/, '')}</h4>`;
+      if (/^##\s/.test(trimmed)) return `<h3>${trimmed.replace(/^##\s/, '')}</h3>`;
+      if (/^#\s/.test(trimmed)) return `<h2>${trimmed.replace(/^#\s/, '')}</h2>`;
+      if (/^(\- |\* )/m.test(trimmed)) return `<ul>${trimmed.split('\n').map(line => line.match(/^(\- |\* )(.*)/) ? `<li>${line.replace(/^(\- |\* )/, '')}</li>` : `<li>${line}</li>`).join('')}</ul>`;
+      const formatted = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+      return `<p>${formatted}</p>`;
+    }).join('');
   }
-  if (file.size > 8 * 1024 * 1024) {
-    showError('Plik jest za duży. Maksymalny rozmiar to 8 MB.');
-    fileInput.value = '';
-    return;
+  function setFile(file) {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      showError('Wybierz obraz PNG, JPG lub WEBP.'); fileInput.value = ''; return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      showError('Plik jest wiÄkszy niÅ¼ 8 MB. Wybierz mniejszy obraz.'); fileInput.value = ''; return;
+    }
+    lastFile = file;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(file);
+    preview.src = previewUrl;
+    preview.hidden = false;
+    fileName.textContent = file.name;
+    if (content.hidden === false || errorBox.hidden === false) setView('empty');
+    setStatus('GOTOWY');
   }
-  if (previewUrl) URL.revokeObjectURL(previewUrl);
-  previewUrl = URL.createObjectURL(file);
-  preview.src = previewUrl;
-  preview.hidden = false;
-  dropzone.querySelectorAll('strong, span:not(.upload-symbol), small')
-    .forEach(el => el.hidden = true);
-  dropzone.querySelector('.upload-symbol').hidden = true;
-  dropzone.style.padding = '12px';
-  dropzone.style.minHeight = '160px';
-  hideError();
-}
-fileInput.addEventListener('change', () => {
-  setFile(fileInput.files[0]);
-});
-['dragenter', 'dragover'].forEach(name => {
-  dropzone.addEventListener(name, event => {
-    event.preventDefault();
-    dropzone.classList.add('dragging');
-  });
-});
-['dragleave', 'drop'].forEach(name => {
-  dropzone.addEventListener(name, event => {
-    event.preventDefault();
-    dropzone.classList.remove('dragging');
-  });
-});
-dropzone.addEventListener('drop', event => {
-  const file = event.dataTransfer.files[0];
-  if (!file) return;
-  const transfer = new DataTransfer();
-  transfer.items.add(file);
-  fileInput.files = transfer.files;
-  setFile(file);
-});
-function showError(message) {
-  loadingState.hidden = true;
-  loadingState.style.display = 'none';
-  emptyState.hidden = true;
-  resultContent.hidden = true;
-  resultContent.style.display = 'none';
-  errorBox.textContent = message;
-  errorBox.hidden = false;
-  errorBox.style.display = 'block';
-  status.textContent = 'BŁĄD';
-  status.style.color = '#ffc1d0';
-}
-function hideError() {
-  errorBox.hidden = true;
-  errorBox.style.display = 'none';
-  status.textContent = 'GOTOWE';
-  status.style.color = '';
-}
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, character => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  })[character]);
-}
-function inline(text) {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`(.+?)`/g, '<code>$1</code>');
-}
-function renderMarkdown(text) {
-  const escaped = escapeHtml(String(text).replace(/\r/g, ''));
-  return escaped
-    .split(/\n\s*\n/)
-    .map(block => {
-      const lines = block.split('\n');
-      if (lines.every(line => /^\s*[-*]\s+/.test(line))) {
-        return '<ul>' + lines.map(line =>
-          '<li>' + inline(line.replace(/^\s*[-*]\s+/, '')) + '</li>'
-        ).join('') + '</ul>';
+  function showError(message) {
+    $('#error-message').textContent = message || 'SprÃ³buj ponownie za chwilÄ.';
+    setView('error'); setStatus('BÅÄD', 'error');
+  }
+  fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
+  ['dragenter','dragover'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove('dragover'); }));
+  dropzone.addEventListener('drop', (event) => setFile(event.dataTransfer?.files?.[0]));
+
+  function renderResult(data) {
+    const signal = ['BUY','SELL','WAIT'].includes(data.signal) ? data.signal : 'WAIT';
+    const card = $('#signal-card');
+    card.className = `signal-card ${signal.toLowerCase()}`;
+    $('#signal-word').textContent = signal;
+    $('#score-value').textContent = Number.isFinite(Number(data.score)) ? Math.max(0, Math.min(100, Number(data.score))) : 'â';
+    $('#signal-rationale').textContent = data.rationale || 'Brak wystarczajÄcego uzasadnienia.';
+    const riskLabels = {NISKIE:'Niskie',UMIARKOWANE:'Umiarkowane',WYSOKIE:'Wysokie',NIEZNANE:'Nieznane'};
+    $('#risk-value').textContent = riskLabels[data.risk] || 'Nieznane';
+    $('#risk-reason').textContent = data.risk_reason || 'Nie podano uzasadnienia oceny ryzyka.';
+    $('#entry-value').textContent = data.entry || 'Nie da siÄ okreÅliÄ';
+    $('#sl-value').textContent = data.stop_loss || 'Nie da siÄ okreÅliÄ';
+    $('#tp1-value').textContent = data.take_profit_1 || 'Nie da siÄ okreÅliÄ';
+    $('#tp2-value').textContent = data.take_profit_2 || 'Nie da siÄ okreÅliÄ';
+    $('#rr-value').textContent = data.reward_risk || 'Nie da siÄ wiarygodnie okreÅliÄ';
+    $('#invalidation-value').textContent = data.invalidation || 'Nie podano warunkÃ³w uniewaÅ¼nienia.';
+    $('#analysis-body').innerHTML = renderMarkdown(data.analysis || 'Brak szczegÃ³Åowej analizy.');
+    setView('content'); setStatus('ANALIZA GOTOWA');
+  }
+  async function analyze() {
+    const file = lastFile || fileInput.files?.[0];
+    if (!file) { showError('Najpierw dodaj zdjÄcie wykresu.'); $('#chart-file').focus(); return; }
+    const data = new FormData(form);
+    data.set('chart', file);
+    analyzeButton.disabled = true;
+    setView('loading'); setStatus('ANALIZUJÄ', 'busy');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 100000);
+    try {
+      const response = await fetch('/api/analyze', { method: 'POST', body: data, signal: controller.signal });
+      let payload;
+      try { payload = await response.json(); } catch { throw new Error('Serwer zwrÃ³ciÅ nieprawidÅowÄ odpowiedÅº.'); }
+      if (!response.ok) throw new Error(payload.error || `BÅÄd serwera (${response.status}).`);
+      // Compatibility fallback if an older server returns only { analysis: "..." }.
+      if (!payload.signal && payload.analysis) {
+        payload = { signal:'WAIT', score:0, risk:'NIEZNANE', risk_reason:'Starsza wersja API nie zwrÃ³ciÅa struktury oceny.', entry:'Nie da siÄ wiarygodnie okreÅliÄ', stop_loss:'Nie da siÄ wiarygodnie okreÅliÄ', take_profit_1:'Nie da siÄ wiarygodnie okreÅliÄ', take_profit_2:'Nie da siÄ wiarygodnie okreÅliÄ', reward_risk:'Nie da siÄ wiarygodnie okreÅliÄ', rationale:'PoniÅ¼ej znajduje siÄ opis z API. Zaktualizuj server.js, aby wÅÄczyÄ kartÄ sygnaÅu.', invalidation:'Brak danych strukturalnych.', analysis:payload.analysis };
       }
-      return lines.map(line => {
-        const heading = line.match(/^\s*#{1,3}\s+(.+)/);
-        if (heading) {
-          return `<h3>${inline(heading[1])}</h3>`;
-        }
-        const numbered = line.match(/^\s*\d+[.)]\s+(.+)/);
-        if (numbered) {
-          const number = numbered[0].split(/\s+/)[0];
-          return `<p><strong>${inline(number)}</strong> ${inline(numbered[1])}</p>`;
-        }
-        return line.trim() ? `<p>${inline(line)}</p>` : '';
-      }).join('');
-    })
-    .join('');
-}
-function finishLoading() {
-  loadingState.hidden = true;
-  loadingState.style.display = 'none';
-  submitButton.disabled = false;
-  submitButton.removeAttribute('aria-busy');
-  const label = submitButton.querySelector('.button-label');
-  if (label) label.textContent = 'Przeanalizuj wykres z AI';
-  isAnalyzing = false;
-}
-form.addEventListener('submit', async event => {
-  event.preventDefault();
-  if (isAnalyzing) return;
-  if (!fileInput.files[0]) {
-    showError('Najpierw dodaj zdjęcie wykresu.');
-    return;
-  }
-  isAnalyzing = true;
-  hideError();
-  const buttonLabel = submitButton.querySelector('.button-label');
-  const data = new FormData(form);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000);
-  emptyState.hidden = true;
-  emptyState.style.display = 'none';
-  resultContent.hidden = true;
-  resultContent.style.display = 'none';
-  errorBox.hidden = true;
-  errorBox.style.display = 'none';
-  loadingState.hidden = false;
-  loadingState.style.removeProperty('display');
-  status.textContent = 'ANALIZA…';
-  submitButton.disabled = true;
-  submitButton.setAttribute('aria-busy', 'true');
-  if (buttonLabel) buttonLabel.textContent = 'Analizuję wykres…';
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      body: data,
-      signal: controller.signal
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(
-        payload.error || `Błąd serwera (${response.status}).`
-      );
+      renderResult(payload);
+    } catch (error) {
+      showError(error.name === 'AbortError' ? 'Analiza trwaÅa zbyt dÅugo i zostaÅa przerwana. SprÃ³buj ponownie z mniejszym, czytelniejszym obrazem.' : error.message || 'Nie udaÅo siÄ poÅÄczyÄ z serwerem.');
+    } finally {
+      clearTimeout(timeout); analyzeButton.disabled = false;
     }
-    if (typeof payload.analysis !== 'string' || !payload.analysis.trim()) {
-      throw new Error('AI zwróciła pustą odpowiedź. Spróbuj ponownie.');
-    }
-    resultContent.innerHTML = renderMarkdown(payload.analysis);
-    // Najpierw pokaż wynik, potem bezwarunkowo ukryj loader.
-    resultContent.hidden = false;
-    resultContent.style.removeProperty('display');
-    loadingState.hidden = true;
-    loadingState.style.display = 'none';
-    emptyState.hidden = true;
-    emptyState.style.display = 'none';
-    status.textContent = 'GOTOWE';
-    status.style.color = '';
-    requestAnimationFrame(() => {
-      resultContent.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    });
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      showError('Analiza trwa zbyt długo. Spróbuj ponownie.');
-    } else {
-      showError(
-        error.message || 'Nie udało się połączyć z serwerem. Spróbuj ponownie.'
-      );
-    }
-  } finally {
-    clearTimeout(timeout);
-    finishLoading();
   }
-});
-resetButton.addEventListener('click', () => {
-  if (isAnalyzing) return;
-  form.reset();
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
-  }
-  preview.src = '';
-  preview.hidden = true;
-  dropzone.querySelectorAll('strong, span:not(.upload-symbol), small')
-    .forEach(element => element.hidden = false);
-  dropzone.querySelector('.upload-symbol').hidden = false;
-  dropzone.style.padding = '';
-  dropzone.style.minHeight = '';
-  resultContent.hidden = true;
-  resultContent.style.removeProperty('display');
-  errorBox.hidden = true;
-  errorBox.style.display = 'none';
-  loadingState.hidden = true;
-  loadingState.style.display = 'none';
-  emptyState.hidden = false;
-  emptyState.style.removeProperty('display');
-  status.textContent = 'GOTOWE';
-  status.style.color = '';
-  document.querySelector('#analyzer').scrollIntoView({
-    behavior: 'smooth'
+  form.addEventListener('submit', (event) => { event.preventDefault(); analyze(); });
+  $('#retry-button').addEventListener('click', analyze);
+  $('#reset-button').addEventListener('click', () => {
+    form.reset(); lastFile = null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null; preview.removeAttribute('src'); preview.hidden = true;
+    fileName.textContent = 'Nie wybrano pliku'; setView('empty'); setStatus('GOTOWY');
+    $('#analyzer').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-});
-// Interaktywny mini-quiz edukacyjny.
-const quizCard = document.querySelector('#quiz-card');
-if (quizCard) {
-  const quizOptions = [
-    ...quizCard.querySelectorAll('.quiz-options button')
-  ];
-  const quizFeedback = quizCard.querySelector('#quiz-feedback');
-  const quizReset = quizCard.querySelector('#quiz-reset');
-  quizOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      quizOptions.forEach(button => {
-        button.disabled = true;
-      });
-      const correct = option.dataset.correct === 'true';
-      option.classList.add(correct ? 'correct' : 'incorrect');
-      const correctOption = quizOptions.find(
-        button => button.dataset.correct === 'true'
-      );
-      if (correctOption) correctOption.classList.add('correct');
-      quizFeedback.textContent = correct
-        ? 'Dokładnie! Powrót ceny poniżej oporu może oznaczać fałszywe wybicie. Warto szukać potwierdzenia i rozważyć alternatywne scenariusze.'
-        : 'Nie całkiem. Samo wybicie ani powrót pod poziom nie gwarantują kierunku. Warto poczekać na dodatkowe potwierdzenie.';
-      quizFeedback.hidden = false;
-      quizReset.hidden = false;
-    });
-  });
-  quizReset.addEventListener('click', () => {
-    quizOptions.forEach(button => {
-      button.disabled = false;
-      button.classList.remove('correct', 'incorrect');
-    });
-    quizFeedback.hidden = true;
-    quizReset.hidden = true;
-  });
-}
+  document.querySelectorAll('.quiz-options button').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('.quiz-options button').forEach(b => b.classList.remove('correct','incorrect'));
+    if (button.dataset.answer === 'b') { button.classList.add('correct'); $('#quiz-feedback').textContent = 'DokÅadnie. To ocena jakoÅci przesÅanek na obrazie, nie prawdopodobieÅstwo zysku.'; }
+    else { button.classList.add('incorrect'); $('#quiz-feedback').textContent = 'Nie tym razem. Wynik nie przewiduje zysku â opisuje jakoÅÄ dostÄpnych przesÅanek.'; }
+  }));
+  $('#quiz-reset').addEventListener('click', () => { document.querySelectorAll('.quiz-options button').forEach(b => b.classList.remove('correct','incorrect')); $('#quiz-feedback').textContent = ''; });
+  setView('empty');
+})();
