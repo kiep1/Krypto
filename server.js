@@ -22,7 +22,7 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(png|jpeg|webp)$/i.test(file.mimetype)) cb(null, true);
-    else cb(new Error('PrzeÅlij plik PNG, JPG lub WEBP.'));
+    else cb(new Error('Upload a PNG, JPG, or WEBP file.'));
   }
 });
 
@@ -49,23 +49,23 @@ const resultSchema = {
 
 app.post('/api/analyze', (req, res) => {
   upload.single('chart')(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message || 'Nie udaÅo siÄ przesÅaÄ pliku.' });
+    if (err) return res.status(400).json({ error: err.message || 'Could not upload the file.' });
     try {
-      if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'AI nie jest skonfigurowana. Dodaj OPENAI_API_KEY w ustawieniach Årodowiska Render.' });
-      if (!req.file) return res.status(400).json({ error: 'Dodaj zdjÄcie wykresu.' });
-      const instrument = String(req.body.instrument || 'Nie podano').slice(0, 100);
-      const timeframe = String(req.body.timeframe || 'Nie podano').slice(0, 50);
+      if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'AI is not configured. Add OPENAI_API_KEY in the Render environment settings.' });
+      if (!req.file) return res.status(400).json({ error: 'Upload a chart image.' });
+      const instrument = String(req.body.instrument || 'Not provided').slice(0, 100);
+      const timeframe = String(req.body.timeframe || 'Not provided').slice(0, 50);
       const question = String(req.body.question || '').slice(0, 1200);
       const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      const prompt = `JesteÅ ChartMentor AI, edukacyjnym asystentem analizy technicznej. Odpowiadaj po polsku. Analizuj tylko informacje widoczne na przesÅanym obrazie. Nie wymyÅlaj cen, wskaÅºnikÃ³w, interwaÅÃ³w ani formacji. JeÅli wykres jest nieczytelny lub nie daje podstaw do scenariusza, wybierz WAIT. BUY i SELL oznaczajÄ wyÅÄcznie moÅ¼liwy scenariusz edukacyjny, nie polecenie zawarcia transakcji.
+      const prompt = `You are ChartMentor AI, an educational technical analysis assistant. Respond in English. Analyze only information visible in the uploaded image. Do not invent prices, indicators, timeframes, or patterns. If the chart is unreadable or does not support a scenario, choose WAIT. BUY and SELL are possible educational scenarios only, never instructions to trade.
 
 Instrument: ${instrument}
-InterwaÅ: ${timeframe}
-Pytanie uÅ¼ytkownika: ${question || 'Brak'}
+Timeframe: ${timeframe}
+User question: ${question || 'None'}
 
-ZwrÃ³Ä dane zgodne ze schematem JSON. signal: BUY dla moÅ¼liwego scenariusza wzrostowego, SELL dla spadkowego, WAIT gdy brak wiarygodnej przewagi lub obraz jest niewystarczajÄcy. score to jakoÅÄ/kompletnoÅÄ przesÅanek w skali 0-100, NIGDY prawdopodobieÅstwo zysku. risk to ocena ryzyka interpretacji, nie ryzyka rynkowego wyliczonego z danych. Pola entry, stop_loss, take_profit_1, take_profit_2 i reward_risk majÄ zawieraÄ krÃ³tkie poziomy/opis albo dokÅadnie âNie da siÄ wiarygodnie okreÅliÄ z tego obrazuâ. Nigdy nie zgaduj cen. Konkretne poziomy podawaj tylko gdy skala i poziomy sÄ czytelne. JeÅli nie ma podstaw do okreÅlenia poziomÃ³w, nie twÃ³rz ich na siÅÄ. Nie przedstawiaj tego jako aktualnego sygnaÅu rynkowego â nie masz dostÄpu do bieÅ¼Äcych notowaÅ.
+Return data matching the JSON schema. signal: BUY for a possible bullish scenario, SELL for a bearish scenario, WAIT when there is no reliable edge or the image is insufficient. score rates the quality/completeness of evidence from 0-100; it is NEVER the probability of profit. risk rates interpretive uncertainty, not market risk calculated from data. The entry, stop_loss, take_profit_1, take_profit_2, and reward_risk fields must contain a short level/description or exactly "Cannot be reliably determined from this image". Never guess prices. Give specific levels only when the scale and levels are legible. If there is no basis for levels, do not force them. Do not present this as a current market signal; you do not have access to live market quotes.
 
-W rationale uzasadnij scenariusz w 2-4 zdaniach. invalidation opisuje, co osÅabiÅoby/zanegowaÅo interpretacjÄ. analysis to szczegÃ³Åowa, czytelna analiza w jÄzyku polskim z nagÅÃ³wkami: Co widaÄ na wykresie; Trend i struktura; MoÅ¼liwe formacje; Wsparcia i opory; Scenariusz wzrostowy; Scenariusz spadkowy; Lekcja dla poczÄtkujÄcego; Ograniczenia obrazu; Pytanie kontrolne. WyraÅºnie odrÃ³Å¼niaj obserwacje od hipotez. Dodaj, Å¼e to materiaÅ edukacyjny, a nie rekomendacja inwestycyjna.`;
+In rationale, explain the scenario in 2-4 sentences. invalidation describes what would weaken or invalidate the interpretation. Write analysis as a clear, detailed English explanation with headings: What the chart shows; Trend and structure; Possible patterns; Support and resistance; Bullish scenario; Bearish scenario; A lesson for beginners; Image limitations; A review question. Clearly distinguish observations from hypotheses. State that this is educational material, not investment advice.`;
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await client.responses.create({
         model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
@@ -78,23 +78,23 @@ W rationale uzasadnij scenariusz w 2-4 zdaniach. invalidation opisuje, co osÅ
       });
       let result;
       try { result = JSON.parse(response.output_text || '{}'); }
-      catch { return res.status(502).json({ error: 'AI zwrÃ³ciÅa nieprawidÅowy format analizy. SprÃ³buj ponownie.' }); }
+      catch { return res.status(502).json({ error: 'AI returned an invalid analysis format. Please try again.' }); }
       if (!['BUY', 'SELL', 'WAIT'].includes(result.signal)) result.signal = 'WAIT';
       if (!Number.isInteger(result.score)) result.score = 0;
-      res.json({ ...result, analysis: result.analysis || 'Brak szczegÃ³Åowej analizy.' });
+      res.json({ ...result, analysis: result.analysis || 'No detailed analysis provided.' });
     } catch (e) {
       console.error('Analysis request failed:', e?.status || '', e?.message || 'unknown error');
-      if (e?.status === 401) return res.status(502).json({ error: 'Klucz API zostaÅ odrzucony. SprawdÅº OPENAI_API_KEY w ustawieniach Render.' });
-      if (e?.status === 429) return res.status(429).json({ error: 'Limit API zostaÅ osiÄgniÄty. SprawdÅº rozliczenia i limity OpenAI API.' });
-      if (e?.status === 400) return res.status(400).json({ error: 'Nie udaÅo siÄ przetworzyÄ obrazu. SprÃ³buj przesÅaÄ wyraÅºniejszy plik PNG, JPG lub WEBP.' });
-      res.status(500).json({ error: 'WystÄpiÅ problem podczas analizy. SprÃ³buj ponownie za chwilÄ.' });
+      if (e?.status === 401) return res.status(502).json({ error: 'The API key was rejected. Check OPENAI_API_KEY in the Render settings.' });
+      if (e?.status === 429) return res.status(429).json({ error: 'API limit reached. Check your OpenAI API billing and limits.' });
+      if (e?.status === 400) return res.status(400).json({ error: 'Could not process the image. Try uploading a clearer PNG, JPG, or WEBP file.' });
+      res.status(500).json({ error: 'A problem occurred during analysis. Please try again shortly.' });
     }
   });
 });
 
 app.use((err, _req, res, _next) => {
   console.error('Request error:', err.message);
-  res.status(400).json({ error: err.message || 'NieprawidÅowe Å¼Ädanie.' });
+  res.status(400).json({ error: err.message || 'Invalid request.' });
 });
 
-app.listen(PORT, () => console.log(`ChartMentor AI dziaÅa na porcie ${PORT}`));
+app.listen(PORT, () => console.log(`ChartMentor AI is running on port ${PORT}`));
