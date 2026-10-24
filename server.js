@@ -34,7 +34,7 @@ const pageRoutes = new Map([
 ]);
 app.get('/index.html', (_req, res) => res.redirect(301, '/'));
 app.get([...pageRoutes.keys()], (req, res, next) => {
-  const route = req.path.replace(/\\/+$/, '') || '/';
+  const route = req.path.replace(/\/+$/, '') || '/';
   const file = pageRoutes.get(route);
   if (!file) return next();
   res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
