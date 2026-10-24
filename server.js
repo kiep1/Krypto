@@ -9,13 +9,49 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 app.use('/api/', rateLimit({ windowMs: 60 * 1000, limit: 12, standardHeaders: true, legacyHeaders: false }));
 
-// Expose only the files the browser needs, not server.js, .env, or package files.
-app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/index.html', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/styles.css', (_req, res) => res.sendFile(path.join(__dirname, 'styles.css')));
-app.get('/app.js', (_req, res) => res.sendFile(path.join(__dirname, 'app.js')));
+// Keep the public route allowlist explicit so server code and environment files stay private.
+const pageRoutes = new Map([
+  ['/', 'index.html'],
+  ['/about', 'about.html'],
+  ['/how-it-works', 'how-it-works.html'],
+  ['/learn', 'learn.html'],
+  ['/learn/technical-analysis', 'guides/technical-analysis.html'],
+  ['/learn/risk-management', 'guides/risk-management.html'],
+  ['/learn/support-and-resistance', 'guides/support-and-resistance.html'],
+  ['/learn/chart-patterns', 'guides/chart-patterns.html'],
+  ['/faq', 'faq.html'],
+  ['/pricing', 'pricing.html'],
+  ['/premium', 'premium.html']
+]);
+app.use((req, res, next) => {
+  const normalizedPath = req.path.replace(/\/+$/, '') || '/';
+  if (normalizedPath !== req.path && pageRoutes.has(normalizedPath)) {
+    return res.redirect(301, normalizedPath + req.originalUrl.slice(req.path.length));
+  }
+  next();
+});
+app.get('/index.html', (_req, res) => res.redirect(301, '/'));
+app.get([...pageRoutes.keys()], (req, res, next) => {
+  const route = req.path.replace(/\/+$/, '') || '/';
+  const file = pageRoutes.get(route);
+  if (!file) return next();
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  res.sendFile(path.join(__dirname, file), (err) => { if (err) next(err); });
+});
+app.get('/styles.css', (_req, res) => res.sendFile(path.join(__dirname, 'styles.css'), { maxAge: '1d' }));
+app.get('/app.js', (_req, res) => res.sendFile(path.join(__dirname, 'app.js'), { maxAge: '1d' }));
+app.get('/favicon.svg', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.svg'), { maxAge: '7d' }));
+app.get('/robots.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt')));
+app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'sitemap.xml')));
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -90,6 +126,11 @@ In rationale, explain the scenario in 2-4 sentences. invalidation describes what
       res.status(500).json({ error: 'A problem occurred during analysis. Please try again shortly.' });
     }
   });
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API route not found.' });
+  res.status(404).sendFile(path.join(__dirname, '404.html'), (err) => { if (err) next(err); });
 });
 
 app.use((err, _req, res, _next) => {
