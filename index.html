@@ -21,7 +21,7 @@
   <meta name="twitter:title" content="ChartMentor AI | Learn to Read Charts and Understand Risk">
   <meta name="twitter:description" content="Educational chart analysis that explains evidence, scenarios, and limitations.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css?v=mobile-layout-20261024">
+  <link rel="stylesheet" href="/styles.css?v=membership-20261024">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.candletutor.com/#organization","name":"ChartMentor AI","url":"https://www.candletutor.com/"},{"@type":"WebSite","@id":"https://www.candletutor.com/#website","name":"ChartMentor AI","url":"https://www.candletutor.com/","inLanguage":"en","publisher":{"@id":"https://www.candletutor.com/#organization"}},{"@type":"WebPage","@id":"https://www.candletutor.com/#webpage","name":"ChartMentor AI | Learn to Read Charts and Understand Risk","url":"https://www.candletutor.com/","description":"Learn to read price charts, review educational analysis scenarios, and understand the limits of AI chart analysis.","inLanguage":"en","isPartOf":{"@id":"https://www.candletutor.com/#website"}}]}</script>
 </head>
 <body>
@@ -35,6 +35,7 @@
   <nav aria-label="Main navigation">
     <a href="/how-it-works">How it works</a>
     <a href="/learn">Learn</a>
+    <a href="/lessons">Lessons</a>
     <a href="/pricing">Pricing</a>
     <a class="nav-cta" href="#analyzer">Analyze chart <span>↗</span></a>
   </nav>
@@ -115,6 +116,7 @@
       </div>
       <p>Add a chart screenshot. Get an educational interpretation, a possible scenario, and an explanation of the analysis limitations.</p>
     </div>
+    <p class="membership-status" id="membership-status" aria-live="polite" hidden></p>
 
     <div class="workspace">
       <div class="input-panel panel">
@@ -125,7 +127,7 @@
 
         <form id="analysis-form">
           <label class="field-label" for="instrument">Instrument / market <span>optional</span></label>
-          <input id="instrument" name="instrument" maxlength="100" placeholder="np. BTC/USD, EUR/USD, S&P 500">
+          <input id="instrument" name="instrument" maxlength="100" placeholder="e.g., BTC/USD, EUR/USD, S&P 500">
 
           <label class="field-label" for="timeframe">Chart timeframe</label>
           <select id="timeframe" name="timeframe">
@@ -151,7 +153,7 @@
           <button class="button primary analyze-button" id="analyze-button" type="submit">
             <span>✦</span> Analyze chart <span class="button-arrow">→</span>
           </button>
-          <p class="form-note">For educational purposes only. Not investment advice.</p>
+          <p class="form-note">Free members can run 3 chart analyses per UTC day. Premium includes up to 30 per day. Sign-in is required when membership features are enabled. Educational purposes only; not investment advice.</p>
         </form>
       </div>
 
@@ -282,10 +284,11 @@
   <a class="brand" href="/"><span class="brand-mark">C</span><span>ChartMentor<span class="brand-ai"> AI</span></span></a>
   <nav class="footer-links" aria-label="Footer navigation">
     <a href="/about">About</a><a href="/learn">Learning guides</a><a href="/faq">FAQ</a><a href="/pricing">Pricing</a><a href="/#risk">Risk statement</a>
-  </nav>
+  <a href="/lessons">Trading lessons</a><a href="/privacy">Privacy</a></nav>
   <span>Built for learning, not promises of profit.</span>
 </footer>
 
-<script src="/app.js" defer></script>
+<script src="/app.js?v=membership-20261024" defer></script>
+<script src="/member.js?v=membership-20261024" defer></script>
 </body>
 </html>
