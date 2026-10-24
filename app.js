@@ -72,7 +72,7 @@
     $('#signal-word').textContent = signal;
     $('#score-value').textContent = Number.isFinite(Number(data.score)) ? Math.max(0, Math.min(100, Number(data.score))) : '—';
     $('#signal-rationale').textContent = data.rationale || 'Insufficient rationale provided.';
-    const riskLabels = {NISKIE:'Low',UMIARKOWANE:'Moderate',WYSOKIE:'High',NIEZNANE:'Unknown'};
+    const riskLabels = {LOW:'Low',MODERATE:'Moderate',HIGH:'High',UNKNOWN:'Unknown'};
     $('#risk-value').textContent = riskLabels[data.risk] || 'Unknown';
     $('#risk-reason').textContent = data.risk_reason || 'No rationale provided for the risk assessment.';
     $('#entry-value').textContent = data.entry || 'Cannot be determined';
