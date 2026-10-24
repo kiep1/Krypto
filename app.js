@@ -42,10 +42,10 @@
   function setFile(file) {
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      showError('Wybierz obraz PNG, JPG lub WEBP.'); fileInput.value = ''; return;
+      showError('Choose a PNG, JPG, or WEBP image.'); fileInput.value = ''; return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      showError('Plik jest wiÄkszy niÅ¼ 8 MB. Wybierz mniejszy obraz.'); fileInput.value = ''; return;
+      showError('File is larger than 8 MB. Choose a smaller image.'); fileInput.value = ''; return;
     }
     lastFile = file;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -57,8 +57,8 @@
     setStatus('GOTOWY');
   }
   function showError(message) {
-    $('#error-message').textContent = message || 'SprÃ³buj ponownie za chwilÄ.';
-    setView('error'); setStatus('BÅÄD', 'error');
+    $('#error-message').textContent = message || 'Please try again shortly.';
+    setView('error'); setStatus('ERROR', 'error');
   }
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
   ['dragenter','dragover'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('dragover'); }));
@@ -70,41 +70,41 @@
     const card = $('#signal-card');
     card.className = `signal-card ${signal.toLowerCase()}`;
     $('#signal-word').textContent = signal;
-    $('#score-value').textContent = Number.isFinite(Number(data.score)) ? Math.max(0, Math.min(100, Number(data.score))) : 'â';
-    $('#signal-rationale').textContent = data.rationale || 'Brak wystarczajÄcego uzasadnienia.';
-    const riskLabels = {NISKIE:'Niskie',UMIARKOWANE:'Umiarkowane',WYSOKIE:'Wysokie',NIEZNANE:'Nieznane'};
-    $('#risk-value').textContent = riskLabels[data.risk] || 'Nieznane';
-    $('#risk-reason').textContent = data.risk_reason || 'Nie podano uzasadnienia oceny ryzyka.';
-    $('#entry-value').textContent = data.entry || 'Nie da siÄ okreÅliÄ';
-    $('#sl-value').textContent = data.stop_loss || 'Nie da siÄ okreÅliÄ';
-    $('#tp1-value').textContent = data.take_profit_1 || 'Nie da siÄ okreÅliÄ';
-    $('#tp2-value').textContent = data.take_profit_2 || 'Nie da siÄ okreÅliÄ';
-    $('#rr-value').textContent = data.reward_risk || 'Nie da siÄ wiarygodnie okreÅliÄ';
-    $('#invalidation-value').textContent = data.invalidation || 'Nie podano warunkÃ³w uniewaÅ¼nienia.';
-    $('#analysis-body').innerHTML = renderMarkdown(data.analysis || 'Brak szczegÃ³Åowej analizy.');
-    setView('content'); setStatus('ANALIZA GOTOWA');
+    $('#score-value').textContent = Number.isFinite(Number(data.score)) ? Math.max(0, Math.min(100, Number(data.score))) : '—';
+    $('#signal-rationale').textContent = data.rationale || 'Insufficient rationale provided.';
+    const riskLabels = {NISKIE:'Low',UMIARKOWANE:'Moderate',WYSOKIE:'High',NIEZNANE:'Unknown'};
+    $('#risk-value').textContent = riskLabels[data.risk] || 'Unknown';
+    $('#risk-reason').textContent = data.risk_reason || 'No rationale provided for the risk assessment.';
+    $('#entry-value').textContent = data.entry || 'Cannot be determined';
+    $('#sl-value').textContent = data.stop_loss || 'Cannot be determined';
+    $('#tp1-value').textContent = data.take_profit_1 || 'Cannot be determined';
+    $('#tp2-value').textContent = data.take_profit_2 || 'Cannot be determined';
+    $('#rr-value').textContent = data.reward_risk || 'Cannot be reliably determined';
+    $('#invalidation-value').textContent = data.invalidation || 'No invalidation conditions provided.';
+    $('#analysis-body').innerHTML = renderMarkdown(data.analysis || 'No detailed analysis provided.');
+    setView('content'); setStatus('ANALYSIS READY');
   }
   async function analyze() {
     const file = lastFile || fileInput.files?.[0];
-    if (!file) { showError('Najpierw dodaj zdjÄcie wykresu.'); $('#chart-file').focus(); return; }
+    if (!file) { showError('Upload a chart image first.'); $('#chart-file').focus(); return; }
     const data = new FormData(form);
     data.set('chart', file);
     analyzeButton.disabled = true;
-    setView('loading'); setStatus('ANALIZUJÄ', 'busy');
+    setView('loading'); setStatus('ANALYZING', 'busy');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 100000);
     try {
       const response = await fetch('/api/analyze', { method: 'POST', body: data, signal: controller.signal });
       let payload;
-      try { payload = await response.json(); } catch { throw new Error('Serwer zwrÃ³ciÅ nieprawidÅowÄ odpowiedÅº.'); }
-      if (!response.ok) throw new Error(payload.error || `BÅÄd serwera (${response.status}).`);
+      try { payload = await response.json(); } catch { throw new Error('The server returned an invalid response.'); }
+      if (!response.ok) throw new Error(payload.error || `Server error (${response.status}).`);
       // Compatibility fallback if an older server returns only { analysis: "..." }.
       if (!payload.signal && payload.analysis) {
-        payload = { signal:'WAIT', score:0, risk:'NIEZNANE', risk_reason:'Starsza wersja API nie zwrÃ³ciÅa struktury oceny.', entry:'Nie da siÄ wiarygodnie okreÅliÄ', stop_loss:'Nie da siÄ wiarygodnie okreÅliÄ', take_profit_1:'Nie da siÄ wiarygodnie okreÅliÄ', take_profit_2:'Nie da siÄ wiarygodnie okreÅliÄ', reward_risk:'Nie da siÄ wiarygodnie okreÅliÄ', rationale:'PoniÅ¼ej znajduje siÄ opis z API. Zaktualizuj server.js, aby wÅÄczyÄ kartÄ sygnaÅu.', invalidation:'Brak danych strukturalnych.', analysis:payload.analysis };
+        payload = { signal:'WAIT', score:0, risk:'NIEZNANE', risk_reason:'The older API did not return a structured assessment.', entry:'Cannot be reliably determined', stop_loss:'Cannot be reliably determined', take_profit_1:'Cannot be reliably determined', take_profit_2:'Cannot be reliably determined', reward_risk:'Cannot be reliably determined', rationale:'The API analysis is shown below. Update server.js to enable the signal card.', invalidation:'No structured data available.', analysis:payload.analysis };
       }
       renderResult(payload);
     } catch (error) {
-      showError(error.name === 'AbortError' ? 'Analiza trwaÅa zbyt dÅugo i zostaÅa przerwana. SprÃ³buj ponownie z mniejszym, czytelniejszym obrazem.' : error.message || 'Nie udaÅo siÄ poÅÄczyÄ z serwerem.');
+      showError(error.name === 'AbortError' ? 'The analysis took too long and was stopped. Try again with a smaller, clearer image.' : error.message || 'Could not connect to the server.');
     } finally {
       clearTimeout(timeout); analyzeButton.disabled = false;
     }
@@ -120,8 +120,8 @@
   });
   document.querySelectorAll('.quiz-options button').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.quiz-options button').forEach(b => b.classList.remove('correct','incorrect'));
-    if (button.dataset.answer === 'b') { button.classList.add('correct'); $('#quiz-feedback').textContent = 'DokÅadnie. To ocena jakoÅci przesÅanek na obrazie, nie prawdopodobieÅstwo zysku.'; }
-    else { button.classList.add('incorrect'); $('#quiz-feedback').textContent = 'Nie tym razem. Wynik nie przewiduje zysku â opisuje jakoÅÄ dostÄpnych przesÅanek.'; }
+    if (button.dataset.answer === 'b') { button.classList.add('correct'); $('#quiz-feedback').textContent = 'That’s right. This rates the quality of evidence in the image, not the probability of profit.'; }
+    else { button.classList.add('incorrect'); $('#quiz-feedback').textContent = 'Not quite. The score does not predict profit; it describes the quality of the available evidence.'; }
   }));
   $('#quiz-reset').addEventListener('click', () => { document.querySelectorAll('.quiz-options button').forEach(b => b.classList.remove('correct','incorrect')); $('#quiz-feedback').textContent = ''; });
   setView('empty');
