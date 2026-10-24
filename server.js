@@ -33,7 +33,7 @@ const resultSchema = {
   properties: {
     signal: { type: 'string', enum: ['BUY', 'SELL', 'WAIT'] },
     score: { type: 'integer', minimum: 0, maximum: 100 },
-    risk: { type: 'string', enum: ['NISKIE', 'UMIARKOWANE', 'WYSOKIE', 'NIEZNANE'] },
+    risk: { type: 'string', enum: ['LOW', 'MODERATE', 'HIGH', 'UNKNOWN'] },
     risk_reason: { type: 'string' },
     entry: { type: 'string' },
     stop_loss: { type: 'string' },
