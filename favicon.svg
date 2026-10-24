@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ChartMentor AI">
+<rect x="2" y="2" width="60" height="60" rx="18" fill="#101626" stroke="#70f0c0" stroke-width="2"/>
+<path d="M12 42 23 31l8 6 15-18" fill="none" stroke="#70f0c0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="46" cy="19" r="4" fill="#a99bff"/>
+</svg>
