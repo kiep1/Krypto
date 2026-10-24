@@ -54,7 +54,7 @@
     preview.hidden = false;
     fileName.textContent = file.name;
     if (content.hidden === false || errorBox.hidden === false) setView('empty');
-    setStatus('GOTOWY');
+    setStatus('READY');
   }
   function showError(message) {
     $('#error-message').textContent = message || 'Please try again shortly.';
@@ -100,7 +100,7 @@
       if (!response.ok) throw new Error(payload.error || `Server error (${response.status}).`);
       // Compatibility fallback if an older server returns only { analysis: "..." }.
       if (!payload.signal && payload.analysis) {
-        payload = { signal:'WAIT', score:0, risk:'NIEZNANE', risk_reason:'The older API did not return a structured assessment.', entry:'Cannot be reliably determined', stop_loss:'Cannot be reliably determined', take_profit_1:'Cannot be reliably determined', take_profit_2:'Cannot be reliably determined', reward_risk:'Cannot be reliably determined', rationale:'The API analysis is shown below. Update server.js to enable the signal card.', invalidation:'No structured data available.', analysis:payload.analysis };
+        payload = { signal:'WAIT', score:0, risk:'UNKNOWN', risk_reason:'The older API did not return a structured assessment.', entry:'Cannot be reliably determined', stop_loss:'Cannot be reliably determined', take_profit_1:'Cannot be reliably determined', take_profit_2:'Cannot be reliably determined', reward_risk:'Cannot be reliably determined', rationale:'The API analysis is shown below. Update server.js to enable the signal card.', invalidation:'No structured data available.', analysis:payload.analysis };
       }
       renderResult(payload);
     } catch (error) {
@@ -115,7 +115,7 @@
     form.reset(); lastFile = null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = null; preview.removeAttribute('src'); preview.hidden = true;
-    fileName.textContent = 'Nie wybrano pliku'; setView('empty'); setStatus('GOTOWY');
+    fileName.textContent = 'No file selected'; setView('empty'); setStatus('GOTOWY');
     $('#analyzer').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   document.querySelectorAll('.quiz-options button').forEach(button => button.addEventListener('click', () => {
