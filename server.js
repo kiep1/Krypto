@@ -32,6 +32,13 @@ const pageRoutes = new Map([
   ['/pricing', 'pricing.html'],
   ['/premium', 'premium.html']
 ]);
+app.use((req, res, next) => {
+  const normalizedPath = req.path.replace(/\/+$/, '') || '/';
+  if (normalizedPath !== req.path && pageRoutes.has(normalizedPath)) {
+    return res.redirect(301, normalizedPath + req.originalUrl.slice(req.path.length));
+  }
+  next();
+});
 app.get('/index.html', (_req, res) => res.redirect(301, '/'));
 app.get([...pageRoutes.keys()], (req, res, next) => {
   const route = req.path.replace(/\/+$/, '') || '/';
