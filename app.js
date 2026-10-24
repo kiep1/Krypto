@@ -98,6 +98,14 @@
       let payload;
       try { payload = await response.json(); } catch { throw new Error('The server returned an invalid response.'); }
       if (!response.ok) throw new Error(payload.error || `Server error (${response.status}).`);
+      if (payload.usage) {
+        const memberStatus = $('#membership-status');
+        if (memberStatus) {
+          memberStatus.textContent = `${payload.usage.remaining} of ${payload.usage.limit} analyses left today. Limit resets at ${payload.usage.resetsAt}.`;
+          memberStatus.hidden = false;
+        }
+        window.dispatchEvent(new Event('membership:refresh'));
+      }
       // Compatibility fallback if an older server returns only { analysis: "..." }.
       if (!payload.signal && payload.analysis) {
         payload = { signal:'WAIT', score:0, risk:'UNKNOWN', risk_reason:'The older API did not return a structured assessment.', entry:'Cannot be reliably determined', stop_loss:'Cannot be reliably determined', take_profit_1:'Cannot be reliably determined', take_profit_2:'Cannot be reliably determined', reward_risk:'Cannot be reliably determined', rationale:'The API analysis is shown below. Update server.js to enable the signal card.', invalidation:'No structured data available.', analysis:payload.analysis };
