@@ -115,7 +115,7 @@
     form.reset(); lastFile = null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = null; preview.removeAttribute('src'); preview.hidden = true;
-    fileName.textContent = 'No file selected'; setView('empty'); setStatus('GOTOWY');
+    fileName.textContent = 'No file selected'; setView('empty'); setStatus('READY');
     $('#analyzer').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   document.querySelectorAll('.quiz-options button').forEach(button => button.addEventListener('click', () => {
