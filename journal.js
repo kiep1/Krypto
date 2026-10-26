@@ -9,7 +9,7 @@
       if (response.status === 401) { status.textContent = 'Sign in with Google to open your private journal.'; return; }
       if (!response.ok) throw new Error(payload.error || 'Could not load your journal.');
       list.replaceChildren();
-      status.textContent = payload.analyses.length ? `${payload.analyses.length} saved analysis${payload.analyses.length === 1 ? '' : 'es'}.` : 'No saved analyses yet. Your signed-in chart analyses will appear here.';
+      status.textContent = payload.analyses.length ? `${payload.analyses.length} saved analysis${payload.analyses.length === 1 ? '' : 'es'}.` : 'No saved analyses yet. After you review a report, choose “Save to my journal” to add it here.';
       payload.analyses.forEach((item) => {
         const card = document.createElement('article'); card.className = 'journal-card panel';
         const heading = document.createElement('h2'); heading.textContent = item.instrument || 'Chart analysis';

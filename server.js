@@ -200,7 +200,6 @@ In rationale, explain the scenario in 2-4 sentences. invalidation describes what
       if (!['BUY', 'SELL', 'WAIT'].includes(result.signal)) result.signal = 'WAIT';
       if (!Number.isInteger(result.score)) result.score = 0;
       const normalizedResult = { ...result, analysis: result.analysis || 'No detailed analysis provided.' };
-      await membership.saveAnalysis(reservation, req.file, { instrument, timeframe, question }, normalizedResult);
       const usage = reservation ? { used: reservation.used, limit: reservation.limit, remaining: Math.max(0, reservation.limit - reservation.used), resetsAt: '00:00 UTC' } : null;
       reservation = null;
       res.setHeader('Cache-Control', 'private, no-store');

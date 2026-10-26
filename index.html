@@ -21,7 +21,7 @@
   <meta name="twitter:title" content="ChartMentor AI | Learn to Read Charts and Understand Risk">
   <meta name="twitter:description" content="Educational chart analysis that explains evidence, scenarios, and limitations.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css?v=membership-20261024">
+  <link rel="stylesheet" href="/styles.css?v=clarity-20261026">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.candletutor.com/#organization","name":"ChartMentor AI","url":"https://www.candletutor.com/"},{"@type":"WebSite","@id":"https://www.candletutor.com/#website","name":"ChartMentor AI","url":"https://www.candletutor.com/","inLanguage":"en","publisher":{"@id":"https://www.candletutor.com/#organization"}},{"@type":"WebPage","@id":"https://www.candletutor.com/#webpage","name":"ChartMentor AI | Learn to Read Charts and Understand Risk","url":"https://www.candletutor.com/","description":"Learn to read price charts, review educational analysis scenarios, and understand the limits of AI chart analysis.","inLanguage":"en","isPartOf":{"@id":"https://www.candletutor.com/#website"}}]}</script>
 </head>
 <body>
@@ -108,6 +108,15 @@
     <div><strong>03</strong><span>Learn to make informed decisions</span></div>
   </section>
 
+  <section class="home-plan-banner section-wrap" aria-labelledby="home-plan-title">
+    <div><p class="eyebrow">A CLEAR WAY TO START</p><h2 id="home-plan-title">Try Premium for 7 days</h2>
+      <p>Premium is free for the first 7 days. A payment method is required. After the trial, it costs $9.99 USD per month and renews until you cancel. Cancel before the trial ends to avoid the first charge.</p>
+      <p class="home-plan-free">Prefer to start free? The Free plan includes 3 chart analyses each day and the first 3 lessons.</p>
+      <p class="home-plan-availability" data-premium-availability>Checking Premium availability…</p>
+    </div>
+    <a class="button secondary" href="/pricing">Compare plans and billing</a>
+  </section>
+
   <section class="section-wrap analyzer-section" id="analyzer">
     <div class="section-heading">
       <div>
@@ -153,7 +162,7 @@
           <button class="button primary analyze-button" id="analyze-button" type="submit">
             <span>✦</span> Analyze chart <span class="button-arrow">→</span>
           </button>
-          <p class="form-note">Free members can run 3 chart analyses per UTC day. Premium includes up to 30 per day. Sign-in is required when membership features are enabled. Educational purposes only; not investment advice.</p>
+          <p class="form-note">Free plan: 3 completed analyses per day. Premium: up to 30. Every completed analysis counts, even if you choose not to save it. When accounts are available, sign in to analyze and manage your daily limit. For learning only; not investment advice.</p>
         </form>
       </div>
 
@@ -219,6 +228,12 @@
 
           <div class="analysis-body" id="analysis-body"></div>
           <div class="result-disclaimer">⚠️ This is an educational image analysis, not investment advice or a signal based on live market data.</div>
+          <section class="analysis-save-panel" id="analysis-save-panel" aria-labelledby="analysis-save-title" hidden>
+            <div><h4 id="analysis-save-title">Would you like to save this analysis?</h4><p id="analysis-save-help">Your chart and report stay in this browser unless you choose to save them to your private journal.</p></div>
+            <button class="button secondary" id="save-analysis-button" type="button" hidden>Save to my journal</button>
+            <a class="button secondary" id="save-analysis-signin" href="/account" hidden>Sign in to save</a>
+            <p class="save-analysis-status" id="save-analysis-status" role="status" aria-live="polite"></p>
+          </section>
           <button class="button secondary reset-button" id="reset-button" type="button">← Analyze another chart</button>
         </div>
       </div>
@@ -288,7 +303,7 @@
   <span>Built for learning, not promises of profit.</span>
 </footer>
 
-<script src="/app.js?v=membership-20261024" defer></script>
-<script src="/member.js?v=membership-20261024" defer></script>
+<script src="/app.js?v=save-choice-20261026" defer></script>
+<script src="/member.js?v=save-choice-20261026" defer></script>
 </body>
 </html>

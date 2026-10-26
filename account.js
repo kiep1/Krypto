@@ -48,7 +48,7 @@
       }
       if (!state.authenticated) {
         const heading = document.createElement('h2'); heading.textContent = 'Sign in to ChartMentor AI';
-        const text = document.createElement('p'); text.textContent = 'Google sign-in lets you save your chart screenshots and analysis reports to a private journal.';
+        const text = document.createElement('p'); text.textContent = 'Sign in with Google to use your daily analysis allowance, manage your plan, and choose which chart reports to save to your private journal.';
         const link = document.createElement('a'); link.className = 'button primary'; link.href = '/auth/google'; link.textContent = 'Continue with Google';
         panel.append(heading, text, link);
         if (new URLSearchParams(location.search).has('login')) setMessage('Google sign-in did not complete. Please try again.');

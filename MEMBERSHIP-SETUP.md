@@ -47,7 +47,7 @@ Also configure Stripe's customer portal so users can manage or cancel subscripti
 - Premium: up to 30 chart analyses and 50 tutor answers per UTC day; all 11 lessons.
 - Premium: 7 days free, then $9.99 USD per month, automatically recurring until cancellation.
 
-Premium lessons are served only after a verified active/trialing subscription check. Successful signed-in chart analyses are automatically saved with their image. Each record can be deleted from the private journal; account deletion also removes saved records and cancels an active subscription.
+Premium lessons are served only after a verified active/trialing subscription check. A chart analysis counts toward the user's daily allowance whether or not it is saved. The chart and report are added to the private journal only when the signed-in user selects “Save to my journal.” Each saved record can be deleted from the private journal; account deletion also removes saved records and cancels an active subscription.
 
 ## 6. Health check
 

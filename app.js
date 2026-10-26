@@ -13,6 +13,12 @@
   const status = $('#result-status');
   let lastFile = null;
   let previewUrl = null;
+  let currentAnalysis = null;
+  const savePanel = $('#analysis-save-panel');
+  const saveButton = $('#save-analysis-button');
+  const saveSignIn = $('#save-analysis-signin');
+  const saveHelp = $('#analysis-save-help');
+  const saveStatus = $('#save-analysis-status');
 
   const setView = (view) => {
     empty.hidden = view !== 'empty';
@@ -89,6 +95,10 @@
     if (!file) { showError('Upload a chart image first.'); $('#chart-file').focus(); return; }
     const data = new FormData(form);
     data.set('chart', file);
+    currentAnalysis = null;
+    if (savePanel) savePanel.hidden = true;
+    savePanel?.querySelector('a[href="/journal"]')?.remove();
+    if (saveButton) { saveButton.hidden = true; saveButton.disabled = false; }
     analyzeButton.disabled = true;
     setView('loading'); setStatus('ANALYZING', 'busy');
     const controller = new AbortController();
@@ -110,17 +120,82 @@
       if (!payload.signal && payload.analysis) {
         payload = { signal:'WAIT', score:0, risk:'UNKNOWN', risk_reason:'The older API did not return a structured assessment.', entry:'Cannot be reliably determined', stop_loss:'Cannot be reliably determined', take_profit_1:'Cannot be reliably determined', take_profit_2:'Cannot be reliably determined', reward_risk:'Cannot be reliably determined', rationale:'The API analysis is shown below. Update server.js to enable the signal card.', invalidation:'No structured data available.', analysis:payload.analysis };
       }
+      currentAnalysis = {
+        file,
+        fields: {
+          instrument: String(data.get('instrument') || ''),
+          timeframe: String(data.get('timeframe') || ''),
+          question: String(data.get('question') || '')
+        },
+        result: Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'usage'))
+      };
       renderResult(payload);
+      await updateSaveOption();
     } catch (error) {
       showError(error.name === 'AbortError' ? 'The analysis took too long and was stopped. Try again with a smaller, clearer image.' : error.message || 'Could not connect to the server.');
     } finally {
       clearTimeout(timeout); analyzeButton.disabled = false;
     }
   }
+  async function updateSaveOption() {
+    if (!savePanel || !currentAnalysis) return;
+    savePanel.hidden = false;
+    saveStatus.textContent = '';
+    saveButton.hidden = true;
+    saveSignIn.hidden = true;
+    saveHelp.textContent = 'Your chart and report stay in this browser unless you choose to save them to your private journal.';
+    try {
+      const response = await fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const state = await response.json();
+      if (!state.enabled) {
+        saveHelp.textContent = 'Saving is temporarily unavailable. This analysis has not been saved.';
+      } else if (state.authenticated) {
+        saveButton.hidden = false;
+      } else {
+        saveHelp.textContent = 'Sign in to save this chart and report to your private journal. Nothing is saved unless you choose to save it.';
+        saveSignIn.hidden = false;
+      }
+    } catch {
+      saveHelp.textContent = 'We could not check your sign-in status. This analysis has not been saved.';
+    }
+  }
+  async function saveCurrentAnalysis() {
+    if (!currentAnalysis || !saveButton) return;
+    saveButton.disabled = true;
+    saveStatus.textContent = 'Saving your chart and report…';
+    try {
+      const data = new FormData();
+      data.append('chart', currentAnalysis.file, currentAnalysis.file.name || 'chart.png');
+      data.append('instrument', currentAnalysis.fields.instrument);
+      data.append('timeframe', currentAnalysis.fields.timeframe);
+      data.append('question', currentAnalysis.fields.question);
+      data.append('result', JSON.stringify(currentAnalysis.result));
+      const response = await fetch('/api/journal', { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Could not save this analysis.');
+      saveStatus.textContent = 'Saved to your private journal.';
+      saveButton.hidden = true;
+      const journalLink = document.createElement('a');
+      journalLink.className = 'text-link';
+      journalLink.href = '/journal';
+      journalLink.textContent = 'Open saved analyses';
+      savePanel.append(journalLink);
+    } catch (error) {
+      saveStatus.textContent = error.message || 'Could not save this analysis.';
+      saveButton.disabled = false;
+    }
+  }
   form.addEventListener('submit', (event) => { event.preventDefault(); analyze(); });
   $('#retry-button').addEventListener('click', analyze);
+  saveButton?.addEventListener('click', saveCurrentAnalysis);
   $('#reset-button').addEventListener('click', () => {
     form.reset(); lastFile = null;
+    currentAnalysis = null;
+    if (savePanel) savePanel.hidden = true;
+    saveStatus.textContent = '';
+    savePanel?.querySelector('a[href="/journal"]')?.remove();
+    if (saveButton) { saveButton.hidden = true; saveButton.disabled = false; }
+    if (saveSignIn) saveSignIn.hidden = true;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = null; preview.removeAttribute('src'); preview.hidden = true;
     fileName.textContent = 'No file selected'; setView('empty'); setStatus('READY');

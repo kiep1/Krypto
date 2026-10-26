@@ -16,7 +16,7 @@ Never commit `.env`, database URLs, OAuth credentials, OpenAI keys, Stripe secre
 
 - Free accounts receive 3 chart analyses and 5 lesson-tutor questions per UTC day, plus the first 3 structured lessons.
 - Premium includes up to 30 chart analyses and 50 tutor questions per UTC day, plus all 11 lessons, for $9.99 USD per month.
-- Signed-in analyses are stored with their original screenshot and report. Users can delete individual records or delete their account.
+- Analyses count toward the daily plan limit whether or not they are saved. Signed-in users can choose to save a chart and its report to their private journal, then delete individual records or their account.
 - Premium lesson bodies are encrypted in `premium-lessons.enc`. The decryption key is supplied separately and must be set as `PREMIUM_CONTENT_KEY` in the hosting environment.
 - Premium access is granted only after the server verifies Stripe webhook events. A payment-link visit alone does not unlock content.
 
