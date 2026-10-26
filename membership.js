@@ -128,7 +128,8 @@ async function initializeDatabase() {
       const actualUrl = new URL(link.url);
       const items = await stripe.paymentLinks.listLineItems(link.id, { limit: 5 });
       const item = items.data.length === 1 ? items.data[0] : null;
-      const price = item?.price ? await stripe.prices.retrieve(item.price) : null;
+      const priceId = typeof item?.price === 'string' ? item.price : item?.price?.id;
+      const price = priceId ? await stripe.prices.retrieve(priceId) : null;
       paymentReady = Boolean(link.active && actualUrl.origin === configuredUrl.origin && actualUrl.pathname === configuredUrl.pathname &&
         link.payment_method_collection === 'always' && link.subscription_data?.trial_period_days === 7 &&
         item?.quantity === 1 && price?.unit_amount === 999 && price?.currency === 'usd' && price?.recurring?.interval === 'month');
