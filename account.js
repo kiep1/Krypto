@@ -57,16 +57,25 @@
       const heading = document.createElement('h2'); heading.textContent = `Welcome, ${state.user.name || state.user.email}`;
       const email = document.createElement('p'); email.textContent = state.user.email;
       const plan = document.createElement('p'); plan.className = 'membership-plan'; plan.textContent = state.user.premium ? 'Premium membership is active.' : 'You are on the Free plan.';
+      if (state.user.subscriptionStatus === 'trialing' && state.user.trialEndsAt) {
+        const trialEnd = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(state.user.trialEndsAt));
+        plan.textContent = `Your 7-day Premium trial is active until ${trialEnd} (UTC). Unless you cancel before then, $9.99 USD will be charged and the subscription will renew monthly.`;
+      }
+      const trialNotice = document.createElement('div'); trialNotice.className = 'callout';
+      const trialText = document.createElement('p');
+      trialText.textContent = 'Start with 7 days free. A payment method is required. Unless you cancel before the trial ends, Stripe will charge $9.99 USD and renew monthly until cancelled. Cancel from this account before the trial ends to avoid the first charge.';
+      trialNotice.append(trialText);
       const usage = document.createElement('div');
       if (state.usage?.analyses) addUsage(usage, 'Chart analyses', state.usage.analyses);
       if (state.usage?.lessonQuestions) addUsage(usage, 'Lesson tutor questions', state.usage.lessonQuestions);
       const actions = document.createElement('div'); actions.className = 'account-actions';
       if (state.user.premium) actions.append(button('Manage or cancel Premium', openPortal));
-      else if (state.paymentsEnabled) actions.append(button('Upgrade to Premium · $9.99/month', openCheckout, 'button primary'));
+      else if (state.paymentsEnabled) actions.append(button('Start 7-day free trial', openCheckout, 'button primary'));
       else { const pending = document.createElement('p'); pending.textContent = 'Premium checkout is being configured.'; actions.append(pending); }
       const journalLink = document.createElement('a'); journalLink.className = 'button secondary'; journalLink.href = '/journal'; journalLink.textContent = 'Open saved analyses';
       actions.append(journalLink, button('Sign out', logout), button('Delete account and data', deleteAccount, 'button danger'));
-      panel.append(heading, email, plan, usage, actions);
+      if (!state.user.premium && state.paymentsEnabled) panel.append(heading, email, plan, trialNotice, usage, actions);
+      else panel.append(heading, email, plan, usage, actions);
     } catch {
       panel.textContent = 'Your account could not be loaded. Please refresh the page.';
     }

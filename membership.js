@@ -53,6 +53,7 @@ async function initializeDatabase() {
       stripe_subscription_id TEXT UNIQUE,
       subscription_status TEXT NOT NULL DEFAULT 'free',
       subscription_ends_at TIMESTAMPTZ,
+      trial_ends_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -90,6 +91,7 @@ async function initializeDatabase() {
       event_id TEXT PRIMARY KEY,
       received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
   `);
   databaseReady = true;
 
@@ -119,8 +121,9 @@ async function initializeDatabase() {
       const item = items.data.length === 1 ? items.data[0] : null;
       const price = item?.price ? await stripe.prices.retrieve(item.price) : null;
       paymentReady = Boolean(link.active && actualUrl.origin === configuredUrl.origin && actualUrl.pathname === configuredUrl.pathname &&
+        link.payment_method_collection === 'always' && link.subscription_data?.trial_period_days === 7 &&
         item?.quantity === 1 && price?.unit_amount === 999 && price?.currency === 'usd' && price?.recurring?.interval === 'month');
-      if (!paymentReady) console.error('Premium checkout disabled: the configured Stripe link must be active and priced at $9.99 USD per month.');
+      if (!paymentReady) console.error('Premium checkout disabled: the configured Stripe link must be active, collect a payment method, offer a 7-day trial, and then charge $9.99 USD per month.');
     } catch (error) {
       paymentReady = false;
       console.error('Premium checkout disabled: Stripe link verification failed:', error.message);
@@ -259,20 +262,22 @@ async function webhookHandler(req, res) {
         if (tokenResult.rows[0] && checkout.subscription) {
           const subscription = await stripe.subscriptions.retrieve(checkout.subscription);
           const periodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+          const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
           await pool.query(`
             UPDATE users SET stripe_customer_id = $2, stripe_subscription_id = $3,
-              subscription_status = $4, subscription_ends_at = $5, updated_at = NOW()
-            WHERE id = $1`, [tokenResult.rows[0].user_id, checkout.customer, subscription.id, subscription.status, periodEnd]);
+              subscription_status = $4, subscription_ends_at = $5, trial_ends_at = $6, updated_at = NOW()
+            WHERE id = $1`, [tokenResult.rows[0].user_id, checkout.customer, subscription.id, subscription.status, periodEnd, trialEnd]);
           await pool.query('UPDATE checkout_tokens SET used_at = NOW() WHERE token = $1', [checkout.client_reference_id]);
         }
       }
     } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
       const periodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+      const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
       await pool.query(`
         UPDATE users SET stripe_customer_id = $2, subscription_status = $3,
-          subscription_ends_at = $4, updated_at = NOW()
-        WHERE stripe_subscription_id = $1`, [subscription.id, subscription.customer, subscription.status, periodEnd]);
+          subscription_ends_at = $4, trial_ends_at = $5, updated_at = NOW()
+        WHERE stripe_subscription_id = $1`, [subscription.id, subscription.customer, subscription.status, periodEnd, trialEnd]);
     }
     await pool.query('INSERT INTO stripe_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING', [event.id]);
     return res.json({ received: true });
@@ -295,7 +300,13 @@ function registerRoutes(app) {
         enabled: true,
         authenticated: true,
         paymentsEnabled: hasPayments(),
-        user: { name: req.user.display_name, email: req.user.email, premium: premiumEnabled(req.user) },
+        user: {
+          name: req.user.display_name,
+          email: req.user.email,
+          premium: premiumEnabled(req.user),
+          subscriptionStatus: req.user.subscription_status,
+          trialEndsAt: req.user.trial_ends_at
+        },
         usage: await quotaStatus(req.user)
       });
     } catch (error) { return res.status(500).json({ error: 'Could not load your account.' }); }

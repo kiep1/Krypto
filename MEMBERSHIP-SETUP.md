@@ -22,7 +22,9 @@ The eight Premium lesson bodies are encrypted in `premium-lessons.enc`; only the
 
 ## 4. Configure Stripe
 
-The provided Payment Link is used only after a signed-in user requests checkout. The server adds a random, single-use `client_reference_id`; a Stripe webhook maps a verified subscription back to that account. Set these values in Render:
+The provided Payment Link is used only after a signed-in user requests checkout. In Stripe, edit the link to collect a payment method and grant a seven-day subscription trial (`subscription_data.trial_period_days = 7`). After the trial, Stripe must automatically bill the saved payment method at $9.99 USD monthly until cancellation. The server verifies the active link, the seven-day trial, payment-method collection, and the exact monthly price before enabling checkout. It adds a random, single-use `client_reference_id`; a Stripe webhook maps a verified trial or paid subscription back to that account.
+
+The seven-day duration, payment method requirement, first post-trial price, automatic monthly renewal, and cancellation steps are shown on the plan page, account page, and Stripe Checkout before the customer starts the trial. The account page shows the recorded trial end date after checkout. This app does not currently send a separate trial-ending reminder email.
 
 - `STRIPE_PAYMENT_LINK_URL=https://buy.stripe.com/aFabJ1gcMdvv8AY7lGfnO01`
 - `STRIPE_PAYMENT_LINK_ID` to the corresponding `plink_...` ID from Stripe
@@ -35,16 +37,22 @@ Register `https://www.candletutor.com/api/stripe/webhook` in Stripe and enable t
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
+The subscription remains Premium while its verified Stripe status is `trialing`, then becomes paid after Stripe successfully starts billing. If the user cancels during the trial, Stripe's subscription update removes the Premium status.
+
 Also configure Stripe's customer portal so users can manage or cancel subscriptions. The checkout page requests English locale, but merchant branding is controlled in Stripe.
 
 ## 5. Limits and content
 
 - Free: 3 chart analyses and 5 lesson-tutor answers per UTC day; first 3 of 11 lessons.
 - Premium: up to 30 chart analyses and 50 tutor answers per UTC day; all 11 lessons.
-- Premium price: $9.99 USD per month, as shown by the supplied Stripe link.
+- Premium: 7 days free, then $9.99 USD per month, automatically recurring until cancellation.
 
 Premium lessons are served only after a verified active/trialing subscription check. Successful signed-in chart analyses are automatically saved with their image. Each record can be deleted from the private journal; account deletion also removes saved records and cancels an active subscription.
 
 ## 6. Health check
 
 After deployment, open `/api/health`. `accountsEnabled` should be `true`; `paymentsEnabled` should be `true` only after all payment and Premium-content settings are correct. The account page must offer Google sign-in and show the Stripe upgrade flow before checkout is considered live.
+
+## 7. Google indexing and Render free service behavior
+
+The canonical homepage is `https://www.candletutor.com/`; HTTP and apex-host variants redirect to it and should not be submitted as separate pages. The repository `robots.txt` allows public pages and excludes only private/API routes. Render Free web services can return a platform-level `Disallow: /` robots response while the service is spun down. Upgrade the web service to an always-on paid plan before asking Google to recrawl. Then verify the live canonical URL and sitemap in Search Console and request indexing for `https://www.candletutor.com/`.
