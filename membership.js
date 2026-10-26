@@ -11,12 +11,21 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const OpenAI = require('openai');
 const Stripe = require('stripe');
+const multer = require('multer');
 const { LESSONS, LESSON_BY_SLUG } = require('./lessons');
 
 const FREE_ANALYSES_PER_DAY = 3;
 const PREMIUM_ANALYSES_PER_DAY = 30;
 const FREE_TUTOR_QUESTIONS_PER_DAY = 5;
 const PREMIUM_TUTOR_QUESTIONS_PER_DAY = 50;
+const journalUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, fields: 4, fieldSize: 32 * 1024 },
+  fileFilter: (_req, file, done) => {
+    if (['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) return done(null, true);
+    done(new Error('Choose a PNG, JPG, or WEBP image.'));
+  }
+});
 const utcDate = () => new Date().toISOString().slice(0, 10);
 const pool = process.env.DATABASE_URL ? new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -224,12 +233,12 @@ async function reserveAnalysis(req) {
   const used = await reserveUsage('analysis_usage', user.id, limit);
   return { userId: user.id, limit, used, premium };
 }
-async function saveAnalysis(reservation, file, fields, result) {
-  if (!reservation) return null;
+async function saveAnalysis(userId, file, fields, result) {
+  if (!userId || !file) return null;
   const { rows } = await pool.query(`
     INSERT INTO analyses (user_id, instrument, timeframe, question, image_mime, image_bytes, result)
     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb) RETURNING id, created_at`,
-  [reservation.userId, fields.instrument, fields.timeframe, fields.question, file.mimetype, file.buffer, JSON.stringify(result)]);
+  [userId, fields.instrument, fields.timeframe, fields.question, file.mimetype, file.buffer, JSON.stringify(result)]);
   return rows[0];
 }
 async function quotaStatus(user) {
@@ -375,6 +384,29 @@ function registerRoutes(app) {
       res.set('Cache-Control', 'private, no-store');
       res.json({ analyses: rows });
     } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not load your saved analyses.' }); }
+  });
+  app.post('/api/journal', (req, res, next) => journalUpload.single('chart')(req, res, (error) => {
+    if (error) return res.status(400).json({ error: error.message || 'Could not upload the chart image.' });
+    next();
+  }), async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      const user = requireAuth(req);
+      if (!req.file) return res.status(400).json({ error: 'Choose the chart image you want to save.' });
+      let result;
+      try { result = JSON.parse(req.body.result || ''); }
+      catch { return res.status(400).json({ error: 'The analysis report could not be read. Please run the analysis again.' }); }
+      if (!result || typeof result !== 'object' || !['BUY', 'SELL', 'WAIT'].includes(result.signal) || typeof result.analysis !== 'string') {
+        return res.status(400).json({ error: 'The analysis report is incomplete. Please run the analysis again.' });
+      }
+      const fields = {
+        instrument: String(req.body.instrument || '').slice(0, 100),
+        timeframe: String(req.body.timeframe || '').slice(0, 50),
+        question: String(req.body.question || '').slice(0, 1200)
+      };
+      const saved = await saveAnalysis(user.id, req.file, fields, result);
+      res.status(201).json({ saved: true, id: saved.id });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not save this analysis.' }); }
   });
   app.get('/api/journal/:id/chart', async (req, res) => {
     try {

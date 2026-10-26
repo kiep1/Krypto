@@ -2112,10 +2112,23 @@ textarea {
 .journal-card summary { color: var(--mint); cursor: pointer; font-weight: 700; }
 .journal-report { padding-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .journal-report p { margin-bottom: 12px; }
+.home-plan-banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; margin-top: 28px; margin-bottom: 34px; padding: clamp(22px, 4vw, 34px); border: 1px solid rgba(112,240,192,.35); border-radius: 20px; background: linear-gradient(120deg, rgba(112,240,192,.09), rgba(169,155,255,.07)); }
+.home-plan-banner h2 { margin: 0 0 10px; color: var(--text); font: 700 clamp(24px, 3vw, 32px)/1.2 var(--display); }
+.home-plan-banner p:not(.eyebrow) { max-width: 760px; margin: 0 0 8px; color: #dce2ef; line-height: 1.65; }
+.home-plan-banner .home-plan-free, .home-plan-banner .home-plan-availability { color: var(--muted) !important; font-size: 14px; }
+.home-plan-banner .eyebrow { margin: 0 0 8px; }
+.analysis-save-panel { display: grid; gap: 10px; margin-top: 20px; padding: 18px; border: 1px solid rgba(112,240,192,.27); border-radius: 14px; background: rgba(112,240,192,.05); }
+.analysis-save-panel[hidden] { display: none; }
+.analysis-save-panel h4 { margin: 0 0 5px; color: var(--text); font: 700 18px/1.35 var(--display); }
+.analysis-save-panel p { margin: 0; color: var(--muted); line-height: 1.6; }
+.analysis-save-panel .button { justify-self: start; }
+.analysis-save-panel .save-analysis-status { min-height: 1.4em; color: var(--mint); }
+.analysis-save-panel button:disabled { cursor: wait; opacity: .65; }
 @media (max-width: 760px) {
   .page-layout { grid-template-columns: minmax(0,1fr); }
   .page-aside { position: static; order: -1; }
   .resource-strip { grid-template-columns: 1fr; }
+  .home-plan-banner { grid-template-columns: 1fr; align-items: start; }
 }
 @media (max-width: 680px) {
   .topbar { position: static; flex-wrap: wrap; justify-content: center; gap: 9px 18px; padding: 12px 16px; }
@@ -2129,7 +2142,7 @@ textarea {
   .page-main { padding: 26px 18px 62px; }
   .page-hero { margin-bottom: 28px; }
   .page-hero h1 { font-size: clamp(36px, 10vw, 50px); }
-  .prose { font-size: 15px; }
+  .prose { font-size: 16px; line-height: 1.75; }
   .card-grid, .price-grid { grid-template-columns: 1fr; }
   .resource-strip { width: calc(100% - 36px); }
   .footer-links { gap: 8px 14px; font-size: 11px; }
