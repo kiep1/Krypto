@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /account
+Disallow: /journal
 
 Sitemap: https://www.candletutor.com/sitemap.xml

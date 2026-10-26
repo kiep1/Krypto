@@ -1,25 +1,25 @@
-# ChartMentor AI — MVP
+# ChartMentor AI
 
-Responsive Polish-language web app for educational chart analysis. Includes a landing page, chart upload/preview, optional instrument/timeframe/question fields, loading/error states, and a server-side OpenAI vision API route.
+ChartMentor AI is an English-language trading-education site with image-based chart explanations, public learning guides, an 11-lesson course, Google accounts, a private analysis journal, a lesson Q&A tutor, and optional Stripe Premium billing.
 
-## Requirements
-- Node.js 18+
-- An OpenAI API key with API billing configured
+## Local development
 
-## Run locally
-1. Open a terminal in this folder.
-2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env`.
-4. Put a **newly created/rotated** API key in `.env` as `OPENAI_API_KEY=...`.
-5. Start: `npm start`
-6. Open `http://localhost:3000`.
+- Node.js 20 or newer
+- OpenAI API key for chart analysis and tutor responses
+- PostgreSQL, Google OAuth credentials, Stripe credentials, and the private Premium content key to enable membership features
 
-Never put the API key in `public/`, frontend JavaScript, source control, or a mobile/browser client. The browser calls `/api/analyze`; the server calls OpenAI. Set API project spend limits and monitor usage before sharing the site publicly.
+Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and Google OAuth configuration, account, history, tutor, and billing features remain disabled.
 
-## What this MVP does / doesn't do
-- Does: ask a vision-capable model to interpret a chart image and produce an educational explanation in Polish.
-- Does not: fetch live market data, calculate technical indicators from OHLC data, have user accounts, save analysis history, or process payments. The demo chart on the landing page is illustrative only.
-- AI output can be wrong. This is an educational prototype, not investment advice.
+Never commit `.env`, database URLs, OAuth credentials, OpenAI keys, Stripe secrets, or the Premium content key. See [MEMBERSHIP-SETUP.md](MEMBERSHIP-SETUP.md) for production setup.
 
-## Deployment
-Deploy as a Node.js web service on a hosting provider that supports environment variables. Configure `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in the provider's secret/environment settings. Do not upload `.env`.
+## Membership behavior
+
+- Free accounts receive 3 chart analyses and 5 lesson-tutor questions per UTC day, plus the first 3 structured lessons.
+- Premium includes up to 30 chart analyses and 50 tutor questions per UTC day, plus all 11 lessons, for $9.99 USD per month.
+- Signed-in analyses are stored with their original screenshot and report. Users can delete individual records or delete their account.
+- Premium lesson bodies are encrypted in `premium-lessons.enc`. The decryption key is supplied separately and must be set as `PREMIUM_CONTENT_KEY` in the hosting environment.
+- Premium access is granted only after the server verifies Stripe webhook events. A payment-link visit alone does not unlock content.
+
+## Safety and limits
+
+The analyzer does not use live prices or execute trades. Reports and lessons are educational, may be wrong, and are not personalized investment advice. Uploaded screenshots and tutor questions are sent to OpenAI for processing. Read the site's [privacy and data page](https://www.candletutor.com/privacy) before enabling account storage.
