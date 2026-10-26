@@ -190,8 +190,15 @@ function configureAuthentication(app) {
     } catch (error) { done(error); }
   }));
 
-  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
-  app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/account?login=failed' }), (_req, res) => res.redirect('/account'));
+  app.get('/auth/google', (req, res, next) => {
+    if (req.query.next === 'checkout') req.session.postLoginAction = 'checkout';
+    next();
+  }, passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
+  app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/account?login=failed' }), (req, res) => {
+    const shouldOpenCheckout = req.session?.postLoginAction === 'checkout';
+    if (req.session) delete req.session.postLoginAction;
+    res.redirect(shouldOpenCheckout ? '/account?checkout=1' : '/account');
+  });
 }
 
 function isEnabled() { return authReady && databaseReady; }

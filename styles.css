@@ -2117,6 +2117,16 @@ textarea {
 .home-plan-banner p:not(.eyebrow) { max-width: 760px; margin: 0 0 8px; color: #dce2ef; line-height: 1.65; }
 .home-plan-banner .home-plan-free, .home-plan-banner .home-plan-availability { color: var(--muted) !important; font-size: 14px; }
 .home-plan-banner .eyebrow { margin: 0 0 8px; }
+.premium-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.premium-price del { color: var(--muted); font: 500 19px var(--display); }
+.premium-price > span { color: var(--mint); font: 700 34px var(--display); }
+.premium-price small { color: var(--muted); font-size: 14px; font-weight: 500; }
+.after-trial-price { color: var(--text); }
+.trial-help { margin: 12px 0 16px; }
+.trial-help summary { display: inline-flex; align-items: center; gap: 9px; color: var(--mint); cursor: pointer; font-weight: 700; }
+.trial-help-icon { display: inline-grid; width: 22px; height: 22px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 14px; }
+.trial-help > div { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+.trial-help > div p { margin: 0; }
 .analysis-save-panel { display: grid; gap: 10px; margin-top: 20px; padding: 18px; border: 1px solid rgba(112,240,192,.27); border-radius: 14px; background: rgba(112,240,192,.05); }
 .analysis-save-panel[hidden] { display: none; }
 .analysis-save-panel h4 { margin: 0 0 5px; color: var(--text); font: 700 18px/1.35 var(--display); }

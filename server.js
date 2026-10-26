@@ -128,7 +128,7 @@ app.get('/lessons/:slug', async (req, res, next) => {
     const template = fs.readFileSync(path.join(__dirname, 'lesson.html'), 'utf8');
     const canonical = `https://www.candletutor.com/lessons/${lesson.slug}`;
     const page = injectTemplate(template, {
-      title: escapeHtml(`${lesson.title} | ChartMentor AI`),
+      title: escapeHtml(`${lesson.title} | CandleTutor`),
       description: escapeHtml(lesson.summary),
       canonical,
       lessonTitle: escapeHtml(lesson.title),
@@ -136,7 +136,7 @@ app.get('/lessons/:slug', async (req, res, next) => {
       summary: escapeHtml(lesson.summary),
       lessonBody: body,
       tutor,
-      schema: JSON.stringify({ '@context': 'https://schema.org', '@type': 'LearningResource', name: lesson.title, description: lesson.summary, inLanguage: 'en', isAccessibleForFree: lesson.access === 'free', url: canonical, provider: { '@type': 'Organization', name: 'ChartMentor AI', url: 'https://www.candletutor.com/' } }).replace(/</g, '\\u003c')
+      schema: JSON.stringify({ '@context': 'https://schema.org', '@type': 'LearningResource', name: lesson.title, description: lesson.summary, inLanguage: 'en', isAccessibleForFree: lesson.access === 'free', url: canonical, provider: { '@type': 'Organization', name: 'CandleTutor', url: 'https://www.candletutor.com/' } }).replace(/</g, '\\u003c')
     });
     res.setHeader('Cache-Control', lesson.access === 'premium' ? 'private, no-store' : 'public, max-age=0, must-revalidate');
     res.type('html').send(page);
@@ -175,7 +175,7 @@ app.post('/api/analyze', (req, res) => {
       const timeframe = String(req.body.timeframe || 'Not provided').slice(0, 50);
       const question = String(req.body.question || '').slice(0, 1200);
       const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      const prompt = `You are ChartMentor AI, an educational technical analysis assistant. Respond in English. Analyze only information visible in the uploaded image. Do not invent prices, indicators, timeframes, or patterns. If the chart is unreadable or does not support a scenario, choose WAIT. BUY and SELL are possible educational scenarios only, never instructions to trade.
+      const prompt = `You are CandleTutor, an educational technical analysis assistant. Respond in English. Analyze only information visible in the uploaded image. Do not invent prices, indicators, timeframes, or patterns. If the chart is unreadable or does not support a scenario, choose WAIT. BUY and SELL are possible educational scenarios only, never instructions to trade.
 
 Instrument: ${instrument}
 Timeframe: ${timeframe}
@@ -234,8 +234,8 @@ app.use((err, _req, res, _next) => {
 });
 
 membership.initializeDatabase()
-  .then(() => app.listen(PORT, () => console.log(`ChartMentor AI is running on port ${PORT}`)))
+  .then(() => app.listen(PORT, () => console.log(`CandleTutor is running on port ${PORT}`)))
   .catch((error) => {
     console.error('Database initialization failed; member features remain disabled:', error.message);
-    app.listen(PORT, () => console.log(`ChartMentor AI is running on port ${PORT} without member features`));
+    app.listen(PORT, () => console.log(`CandleTutor is running on port ${PORT} without member features`));
   });

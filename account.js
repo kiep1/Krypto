@@ -7,6 +7,7 @@
     item.type = 'button'; item.className = className; item.textContent = label; item.addEventListener('click', action); return item;
   };
   const setMessage = (value) => { message.textContent = value || ''; };
+  const checkoutRequested = new URLSearchParams(location.search).get('checkout') === '1';
   async function post(url, method = 'POST') {
     const response = await fetch(url, { method, credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: method === 'POST' ? '{}' : undefined });
     const payload = await response.json();
@@ -47,9 +48,9 @@
         panel.append(heading, text); return;
       }
       if (!state.authenticated) {
-        const heading = document.createElement('h2'); heading.textContent = 'Sign in to ChartMentor AI';
-        const text = document.createElement('p'); text.textContent = 'Sign in with Google to use your daily analysis allowance, manage your plan, and choose which chart reports to save to your private journal.';
-        const link = document.createElement('a'); link.className = 'button primary'; link.href = '/auth/google'; link.textContent = 'Continue with Google';
+        const heading = document.createElement('h2'); heading.textContent = checkoutRequested ? 'Sign in to continue to Premium' : 'Sign in to CandleTutor';
+        const text = document.createElement('p'); text.textContent = checkoutRequested ? 'Create or sign in to your account with Google. After sign-in, you will continue to secure Stripe checkout.' : 'Sign in with Google to use your daily analysis allowance, manage your plan, and choose which chart reports to save to your private journal.';
+        const link = document.createElement('a'); link.className = 'button primary'; link.href = checkoutRequested ? '/auth/google?next=checkout' : '/auth/google'; link.textContent = checkoutRequested ? 'Sign in with Google to continue' : 'Continue with Google';
         panel.append(heading, text, link);
         if (new URLSearchParams(location.search).has('login')) setMessage('Google sign-in did not complete. Please try again.');
         return;
@@ -70,7 +71,13 @@
       if (state.usage?.lessonQuestions) addUsage(usage, 'Lesson tutor questions', state.usage.lessonQuestions);
       const actions = document.createElement('div'); actions.className = 'account-actions';
       if (state.user.premium) actions.append(button('Manage or cancel Premium', openPortal));
-      else if (state.paymentsEnabled) actions.append(button('Start 7-day free trial', openCheckout, 'button primary'));
+      else if (state.paymentsEnabled) {
+        actions.append(button('Get Premium — start free trial', openCheckout, 'button primary'));
+        if (checkoutRequested) {
+          window.history.replaceState({}, '', '/account');
+          openCheckout();
+        }
+      }
       else { const pending = document.createElement('p'); pending.textContent = 'Premium checkout is being configured.'; actions.append(pending); }
       const journalLink = document.createElement('a'); journalLink.className = 'button secondary'; journalLink.href = '/journal'; journalLink.textContent = 'Open saved analyses';
       actions.append(journalLink, button('Sign out', logout), button('Delete account and data', deleteAccount, 'button danger'));
