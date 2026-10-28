@@ -8,8 +8,8 @@
   };
   const setMessage = (value) => { message.textContent = value || ''; };
   const checkoutRequested = new URLSearchParams(location.search).get('checkout') === '1';
-  async function post(url, method = 'POST') {
-    const response = await fetch(url, { method, credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: method === 'POST' ? '{}' : undefined });
+  async function post(url, method = 'POST', data = {}) {
+    const response = await fetch(url, { method, credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: method === 'POST' ? JSON.stringify(data) : undefined });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'The request could not be completed.');
     return payload;
@@ -37,11 +37,118 @@
     row.textContent = `${label}: ${Math.max(0, value.limit - value.used)} of ${value.limit} remaining today (UTC).`;
     container.append(row);
   }
+  function createLocalAuth(state) {
+    const box = document.createElement('div'); box.className = 'local-auth';
+    let mode = 'login';
+    const render = () => {
+      box.replaceChildren();
+      const heading = document.createElement('h3');
+      heading.textContent = mode === 'register' ? 'Create an account with email' : mode === 'forgot' ? 'Reset your password' : 'Sign in with email';
+      const form = document.createElement('form'); form.className = 'account-auth-form';
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const email = form.elements.email.value.trim();
+        const password = form.elements.password?.value || '';
+        try {
+          if (mode === 'forgot') {
+            const result = await post('/api/auth/local/forgot-password', 'POST', { email });
+            setMessage(result.message); mode = 'login'; render(); return;
+          }
+          if (mode === 'register') {
+            const result = await post('/api/auth/local/register', 'POST', { email, password, next: checkoutRequested ? 'checkout' : '' });
+            setMessage(result.message); mode = 'login'; render();
+            const resend = button('Resend verification email', async () => {
+              try {
+                const resendResult = await post('/api/auth/local/resend-verification', 'POST', { email, next: checkoutRequested ? 'checkout' : '' });
+                setMessage(resendResult.message);
+              } catch (resendError) { setMessage(resendError.message); }
+            }, 'button secondary');
+            box.append(resend); return;
+          }
+          await post('/api/auth/local/login', 'POST', { email, password });
+          window.location.reload();
+        } catch (error) {
+          setMessage(error.message);
+          if (error.message.toLowerCase().includes('verify your email')) {
+            const resend = button('Resend verification email', async () => {
+              try {
+                const result = await post('/api/auth/local/resend-verification', 'POST', { email, next: checkoutRequested ? 'checkout' : '' });
+                setMessage(result.message);
+              } catch (resendError) { setMessage(resendError.message); }
+            }, 'button secondary');
+            box.append(resend);
+          }
+        }
+      });
+      const emailLabel = document.createElement('label'); emailLabel.textContent = 'Email';
+      const email = document.createElement('input'); email.type = 'email'; email.name = 'email'; email.required = true; email.maxLength = 254; email.autocomplete = 'email'; email.placeholder = 'you@example.com'; emailLabel.append(email); form.append(emailLabel);
+      if (mode !== 'forgot') {
+        const passwordLabel = document.createElement('label'); passwordLabel.textContent = mode === 'register' ? 'Password (12 characters minimum)' : 'Password';
+        const password = document.createElement('input'); password.type = 'password'; password.name = 'password'; password.required = true; password.maxLength = 128; password.autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+        if (mode === 'register') password.minLength = 12;
+        passwordLabel.append(password); form.append(passwordLabel);
+      }
+      const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'button primary';
+      submit.textContent = mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in';
+      form.append(submit); box.append(heading, form);
+      const links = document.createElement('div'); links.className = 'account-auth-links';
+      if (mode === 'login' && state.emailRegistrationEnabled) {
+        const create = button('Create a new account', () => { mode = 'register'; setMessage(''); render(); }); links.append(create);
+        const forgot = button('Forgot password?', () => { mode = 'forgot'; setMessage(''); render(); }); links.append(forgot);
+      } else if (mode === 'register' || mode === 'forgot') {
+        links.append(button('Back to sign in', () => { mode = 'login'; setMessage(''); render(); }));
+      }
+      box.append(links);
+      if (!state.emailRegistrationEnabled && mode === 'login') {
+        const note = document.createElement('p'); note.className = 'account-auth-note';
+        note.textContent = 'Email sign-up and password recovery are being configured. Google sign-in is available in the meantime.';
+        box.append(note);
+      }
+    };
+    render();
+    return box;
+  }
+  function createResetForm(token) {
+    const form = document.createElement('form'); form.className = 'account-auth-form';
+    const heading = document.createElement('h2'); heading.textContent = 'Choose a new password';
+    const label = document.createElement('label'); label.textContent = 'New password (12 characters minimum)';
+    const password = document.createElement('input'); password.type = 'password'; password.name = 'password'; password.required = true; password.minLength = 12; password.maxLength = 128; password.autocomplete = 'new-password'; label.append(password);
+    const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'button primary'; submit.textContent = 'Save new password';
+    form.append(label, submit);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        await post('/api/auth/local/reset-password', 'POST', { token, password: password.value });
+        window.location.replace(checkoutRequested ? '/account?checkout=1' : '/account');
+      } catch (error) { setMessage(error.message); }
+    });
+    panel.replaceChildren(heading, form);
+  }
+  function createVerificationView(token) {
+    const heading = document.createElement('h2'); heading.textContent = 'Verify your email address';
+    const text = document.createElement('p'); text.textContent = 'Confirm this email address to activate your CandleTutor account.';
+    const verify = button('Verify email', async () => {
+      verify.disabled = true;
+      try {
+        await post('/api/auth/local/verify', 'POST', { token });
+        if (checkoutRequested) window.location.replace('/account?checkout=1');
+        else window.location.replace('/account?verified=1');
+      } catch (error) { setMessage(error.message); verify.disabled = false; }
+    }, 'button primary');
+    panel.replaceChildren(heading, text, verify);
+  }
   async function load() {
     try {
+      const query = new URLSearchParams(location.search);
+      const verificationToken = query.get('verify');
+      if (verificationToken) {
+        createVerificationView(verificationToken); return;
+      }
+      if (query.has('reset')) { createResetForm(query.get('reset')); return; }
       const response = await fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       const state = await response.json();
       panel.replaceChildren();
+      if (query.has('verified')) setMessage('Email verified. Your account is ready.');
       if (!state.enabled) {
         const heading = document.createElement('h2'); heading.textContent = 'Membership setup is in progress';
         const text = document.createElement('p'); text.textContent = 'Accounts, saved charts, and Premium access will be available after the secure database and sign-in setup is complete.';
@@ -49,9 +156,14 @@
       }
       if (!state.authenticated) {
         const heading = document.createElement('h2'); heading.textContent = checkoutRequested ? 'Sign in to continue to Premium' : 'Sign in to CandleTutor';
-        const text = document.createElement('p'); text.textContent = checkoutRequested ? 'Create or sign in to your account with Google. After sign-in, you will continue to secure Stripe checkout.' : 'Sign in with Google to use your daily analysis allowance, manage your plan, and choose which chart reports to save to your private journal.';
-        const link = document.createElement('a'); link.className = 'button primary'; link.href = checkoutRequested ? '/auth/google?next=checkout' : '/auth/google'; link.textContent = checkoutRequested ? 'Sign in with Google to continue' : 'Continue with Google';
-        panel.append(heading, text, link);
+        const text = document.createElement('p'); text.textContent = checkoutRequested ? 'Sign in or create an account. After verification, you will continue to secure Stripe checkout.' : 'Sign in to manage your plan, daily analysis allowance, and saved chart reports.';
+        panel.append(heading, text);
+        if (state.googleEnabled) {
+          const link = document.createElement('a'); link.className = 'button primary'; link.href = checkoutRequested ? '/auth/google?next=checkout' : '/auth/google'; link.textContent = checkoutRequested ? 'Continue with Google' : 'Continue with Google';
+          panel.append(link);
+        }
+        if (state.googleEnabled) { const divider = document.createElement('p'); divider.className = 'auth-divider'; divider.textContent = 'or'; panel.append(divider); }
+        panel.append(createLocalAuth(state));
         if (new URLSearchParams(location.search).has('login')) setMessage('Google sign-in did not complete. Please try again.');
         return;
       }
@@ -81,8 +193,27 @@
       else { const pending = document.createElement('p'); pending.textContent = 'Premium checkout is being configured.'; actions.append(pending); }
       const journalLink = document.createElement('a'); journalLink.className = 'button secondary'; journalLink.href = '/journal'; journalLink.textContent = 'Open saved analyses';
       actions.append(journalLink, button('Sign out', logout), button('Delete account and data', deleteAccount, 'button danger'));
-      if (!state.user.premium && state.paymentsEnabled) panel.append(heading, email, plan, trialNotice, usage, actions);
-      else panel.append(heading, email, plan, usage, actions);
+      const passwordDetails = document.createElement('details'); passwordDetails.className = 'local-password-settings';
+      const passwordSummary = document.createElement('summary'); passwordSummary.textContent = state.user.localPasswordEnabled ? 'Change local password' : 'Set up email and password sign-in';
+      const passwordForm = document.createElement('form'); passwordForm.className = 'account-auth-form';
+      if (state.user.localPasswordEnabled) {
+        const currentLabel = document.createElement('label'); currentLabel.textContent = 'Current password';
+        const currentPassword = document.createElement('input'); currentPassword.type = 'password'; currentPassword.name = 'currentPassword'; currentPassword.required = true; currentPassword.autocomplete = 'current-password'; currentLabel.append(currentPassword); passwordForm.append(currentLabel);
+      }
+      const newLabel = document.createElement('label'); newLabel.textContent = 'New password (12 characters minimum)';
+      const newPassword = document.createElement('input'); newPassword.type = 'password'; newPassword.name = 'newPassword'; newPassword.required = true; newPassword.minLength = 12; newPassword.maxLength = 128; newPassword.autocomplete = 'new-password'; newLabel.append(newPassword);
+      const savePassword = document.createElement('button'); savePassword.type = 'submit'; savePassword.className = 'button secondary'; savePassword.textContent = 'Save password'; passwordForm.append(newLabel, savePassword);
+      passwordForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          await post('/api/auth/local/set-password', 'POST', { password: newPassword.value, currentPassword: passwordForm.elements.currentPassword?.value || '' });
+          setMessage('Local password saved. You can now sign in with your email and password.');
+          load();
+        } catch (error) { setMessage(error.message); }
+      });
+      passwordDetails.append(passwordSummary, passwordForm);
+      if (!state.user.premium && state.paymentsEnabled) panel.append(heading, email, plan, trialNotice, usage, actions, passwordDetails);
+      else panel.append(heading, email, plan, usage, actions, passwordDetails);
     } catch {
       panel.textContent = 'Your account could not be loaded. Please refresh the page.';
     }

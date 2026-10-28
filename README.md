@@ -1,14 +1,16 @@
-# ChartMentor AI
+# CandleTutor
 
-ChartMentor AI is an English-language trading-education site with image-based chart explanations, public learning guides, an 11-lesson course, Google accounts, a private analysis journal, a lesson Q&A tutor, and optional Stripe Premium billing.
+CandleTutor is an English-language trading-education site with image-based chart explanations, public learning guides, an 11-lesson course, Google and email/password accounts, a private analysis journal, a lesson Q&A tutor, and optional Stripe Premium billing.
+
+Official website: [CandleTutor — trading chart education](https://www.candletutor.com/).
 
 ## Local development
 
 - Node.js 20 or newer
 - OpenAI API key for chart analysis and tutor responses
-- PostgreSQL, Google OAuth credentials, Stripe credentials, and the private Premium content key to enable membership features
+- PostgreSQL and a session secret for accounts; SMTP for verified email/password sign-up and recovery; optional Google OAuth; Stripe credentials and the private Premium content key for Premium billing
 
-Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and Google OAuth configuration, account, history, tutor, and billing features remain disabled.
+Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and session secret, account features remain disabled. Email registration and password recovery need SMTP; Google sign-in is optional.
 
 Never commit `.env`, database URLs, OAuth credentials, OpenAI keys, Stripe secrets, or the Premium content key. See [MEMBERSHIP-SETUP.md](MEMBERSHIP-SETUP.md) for production setup.
 
