@@ -1,6 +1,6 @@
-# ChartMentor membership setup
+# CandleTutor membership setup
 
-The member features fail closed until their required configuration is present. Without a database, Google OAuth credentials, Stripe webhook settings, and the Premium content key, the existing public site remains available but account, saved-journal, and paid-membership features stay disabled.
+Member features require a database and session secret. Email/password registration and recovery also require SMTP settings; Google sign-in is optional. Stripe billing requires the Stripe settings and Premium content key.
 
 ## 1. Create persistent storage
 
@@ -8,7 +8,19 @@ Create a PostgreSQL database in the same Render region as the `chartmentor-ai` w
 
 The app stores each signed-in analysis image as a PostgreSQL binary value along with its context and AI response. Images remain until the user deletes the saved analysis or account. A production operator should select a persistent database plan and backup policy appropriate for the expected image volume.
 
-## 2. Configure Google sign-in
+## 2. Configure local email/password accounts
+
+Add these SMTP settings to the Render web service to enable email verification and password recovery. Use credentials from a transactional email provider whose sender domain is verified:
+
+- `SMTP_HOST` — provider SMTP hostname
+- `SMTP_PORT` — usually `587` for STARTTLS or `465` for implicit TLS
+- `SMTP_SECURE` — `true` for port 465, otherwise `false`
+- `SMTP_USER` and `SMTP_PASS` — provider SMTP credentials
+- `EMAIL_FROM` — verified sender, for example `CandleTutor <no-reply@candletutor.com>`
+
+Passwords are stored as salted scrypt hashes. Verification links expire after 24 hours; password-reset links expire after 30 minutes and can be used once. Use a strong, unique `SESSION_SECRET`. Never commit email or session credentials.
+
+## 3. Configure Google sign-in (optional)
 
 Create a Google OAuth web client and authorize this exact redirect URI:
 
@@ -16,11 +28,11 @@ Create a Google OAuth web client and authorize this exact redirect URI:
 
 Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, and a unique `SESSION_SECRET` to the Render service environment. Do not paste credentials into chat, source files, or this repository.
 
-## 3. Configure the Premium content key
+## 4. Configure the Premium content key
 
 The eight Premium lesson bodies are encrypted in `premium-lessons.enc`; only their public titles and summaries are in the source code. Copy the value from the separately delivered local key file `Krypto-premium-content-key.txt` into the Render environment variable `PREMIUM_CONTENT_KEY`. Do not commit or publish that key. Premium checkout stays disabled until the key can decrypt the lesson file.
 
-## 4. Configure Stripe
+## 5. Configure Stripe
 
 The provided Payment Link is used only after a signed-in user requests checkout. In Stripe, edit the link to collect a payment method and grant a seven-day subscription trial (`subscription_data.trial_period_days = 7`). After the trial, Stripe must automatically bill the saved payment method at $9.99 USD monthly until cancellation. The server verifies the active link, the seven-day trial, payment-method collection, and the exact monthly price before enabling checkout. It adds a random, single-use `client_reference_id`; a Stripe webhook maps a verified trial or paid subscription back to that account.
 
@@ -41,7 +53,7 @@ The subscription remains Premium while its verified Stripe status is `trialing`,
 
 Also configure Stripe's customer portal so users can manage or cancel subscriptions. The checkout page requests English locale, but merchant branding is controlled in Stripe.
 
-## 5. Limits and content
+## 6. Limits and content
 
 - Free: 3 chart analyses and 5 lesson-tutor answers per UTC day; first 3 of 11 lessons.
 - Premium: up to 30 chart analyses and 50 tutor answers per UTC day; all 11 lessons.
@@ -49,10 +61,10 @@ Also configure Stripe's customer portal so users can manage or cancel subscripti
 
 Premium lessons are served only after a verified active/trialing subscription check. A chart analysis counts toward the user's daily allowance whether or not it is saved. The chart and report are added to the private journal only when the signed-in user selects “Save to my journal.” Each saved record can be deleted from the private journal; account deletion also removes saved records and cancels an active subscription.
 
-## 6. Health check
+## 7. Health check
 
-After deployment, open `/api/health`. `accountsEnabled` should be `true`; `paymentsEnabled` should be `true` only after all payment and Premium-content settings are correct. The account page must offer Google sign-in and show the Stripe upgrade flow before checkout is considered live.
+After deployment, open `/api/health`. `accountsEnabled` should be `true`; `paymentsEnabled` should be `true` only after all payment and Premium-content settings are correct. The account page should offer email/password sign-in and, when configured, Google sign-in. It should show the Stripe upgrade flow before checkout is considered live.
 
-## 7. Google indexing and Render free service behavior
+## 8. Google indexing and Render free service behavior
 
 The canonical homepage is `https://www.candletutor.com/`; HTTP and apex-host variants redirect to it and should not be submitted as separate pages. The repository `robots.txt` allows public pages and excludes only private/API routes. Render Free web services can return a platform-level `Disallow: /` robots response while the service is spun down. Upgrade the web service to an always-on paid plan before asking Google to recrawl. Then verify the live canonical URL and sitemap in Search Console and request indexing for `https://www.candletutor.com/`.

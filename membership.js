@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { promisify } = require('node:util');
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
@@ -11,6 +12,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const OpenAI = require('openai');
 const Stripe = require('stripe');
+const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { LESSONS, LESSON_BY_SLUG } = require('./lessons');
 
@@ -18,6 +20,8 @@ const FREE_ANALYSES_PER_DAY = 3;
 const PREMIUM_ANALYSES_PER_DAY = 30;
 const FREE_TUTOR_QUESTIONS_PER_DAY = 5;
 const PREMIUM_TUTOR_QUESTIONS_PER_DAY = 50;
+const scryptAsync = promisify(crypto.scrypt);
+const PASSWORD_HASH_BYTES = 64;
 const journalUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024, fields: 4, fieldSize: 32 * 1024 },
@@ -35,8 +39,65 @@ const pool = process.env.DATABASE_URL ? new Pool({
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 let databaseReady = false;
 let authReady = false;
+let googleAuthReady = false;
 let paymentReady = false;
 let privateLessons = null;
+let emailTransport = null;
+
+function getEmailTransport() {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.EMAIL_FROM) return null;
+  if (!emailTransport) {
+    const port = Number(process.env.SMTP_PORT || 587);
+    emailTransport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port,
+      secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+  }
+  return emailTransport;
+}
+
+function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
+function validEmail(value) { return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
+function validPassword(value) { return typeof value === 'string' && value.length >= 12 && value.length <= 128; }
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const digest = await scryptAsync(password, salt, PASSWORD_HASH_BYTES);
+  return `scrypt$${salt.toString('base64url')}$${Buffer.from(digest).toString('base64url')}`;
+}
+async function verifyPassword(password, encoded) {
+  const [algorithm, saltValue, digestValue] = String(encoded || '').split('$');
+  if (algorithm !== 'scrypt' || !saltValue || !digestValue) return false;
+  try {
+    const expected = Buffer.from(digestValue, 'base64url');
+    const actual = Buffer.from(await scryptAsync(password, Buffer.from(saltValue, 'base64url'), expected.length));
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch { return false; }
+}
+function newEmailToken() {
+  const token = crypto.randomBytes(32).toString('base64url');
+  return { token, hash: crypto.createHash('sha256').update(token).digest('hex') };
+}
+function establishLogin(req, user) {
+  return new Promise((resolve, reject) => req.login(user, (error) => error ? reject(error) : resolve()));
+}
+async function sendAccountEmail(user, token, purpose, checkoutAfterVerify = false) {
+  const transport = getEmailTransport();
+  if (!transport) throw httpError(503, 'Email sign-up and password recovery are not configured yet.');
+  const appOrigin = process.env.APP_ORIGIN || 'https://www.candletutor.com';
+  const path = purpose === 'verify' ? '/account?verify=' : '/account?reset=';
+  const url = `${appOrigin}${path}${encodeURIComponent(token)}${checkoutAfterVerify ? '&checkout=1' : ''}`;
+  const isVerify = purpose === 'verify';
+  await transport.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: user.email,
+    subject: isVerify ? 'Verify your CandleTutor email' : 'Reset your CandleTutor password',
+    text: isVerify
+      ? `Verify your CandleTutor account by opening this link: ${url}\n\nThis link expires in 24 hours. If you did not request this, you can ignore this email.`
+      : `Reset your CandleTutor password by opening this link: ${url}\n\nThis link expires in 30 minutes. If you did not request this, you can ignore this email.`
+  });
+}
 
 function httpError(status, message, code) {
   const error = new Error(message);
@@ -101,6 +162,21 @@ async function initializeDatabase() {
       received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+    ALTER TABLE users ALTER COLUMN google_subject DROP NOT NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+    UPDATE users SET email_verified_at = NOW() WHERE google_subject IS NOT NULL AND email_verified_at IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx ON users (LOWER(email));
+    CREATE TABLE IF NOT EXISTS account_email_tokens (
+      token_hash TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      purpose TEXT NOT NULL CHECK (purpose IN ('verify', 'reset')),
+      checkout_after_verify BOOLEAN NOT NULL DEFAULT FALSE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    ALTER TABLE account_email_tokens ADD COLUMN IF NOT EXISTS checkout_after_verify BOOLEAN NOT NULL DEFAULT FALSE;
+    CREATE INDEX IF NOT EXISTS account_email_tokens_user_idx ON account_email_tokens (user_id, purpose);
   `);
   databaseReady = true;
 
@@ -144,7 +220,8 @@ async function initializeDatabase() {
 function configureAuthentication(app) {
   const appOrigin = process.env.APP_ORIGIN || 'https://www.candletutor.com';
   const callbackUrl = process.env.GOOGLE_CALLBACK_URL || `${appOrigin}/auth/google/callback`;
-  authReady = Boolean(pool && process.env.SESSION_SECRET && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  authReady = Boolean(pool && process.env.SESSION_SECRET);
+  googleAuthReady = Boolean(authReady && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   if (!authReady) return;
 
   app.set('trust proxy', 1);
@@ -171,34 +248,37 @@ function configureAuthentication(app) {
       done(null, rows[0] || false);
     } catch (error) { done(error); }
   });
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: callbackUrl,
-    state: true
-  }, async (_accessToken, _refreshToken, profile, done) => {
-    try {
-      const email = profile.emails?.[0]?.value;
-      if (!email) return done(null, false, { message: 'Google did not provide an email address.' });
-      const { rows } = await pool.query(`
-        INSERT INTO users (google_subject, email, display_name)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (google_subject) DO UPDATE
-          SET email = EXCLUDED.email, display_name = EXCLUDED.display_name, updated_at = NOW()
-        RETURNING *`, [profile.id, email, profile.displayName || email]);
-      done(null, rows[0]);
-    } catch (error) { done(error); }
-  }));
+  if (googleAuthReady) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: callbackUrl,
+      state: true
+    }, async (_accessToken, _refreshToken, profile, done) => {
+      try {
+        const email = normalizeEmail(profile.emails?.[0]?.value);
+        if (!email) return done(null, false, { message: 'Google did not provide an email address.' });
+        const { rows } = await pool.query(`
+          INSERT INTO users (google_subject, email, display_name, email_verified_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (google_subject) DO UPDATE
+            SET email = EXCLUDED.email, display_name = EXCLUDED.display_name,
+              email_verified_at = COALESCE(users.email_verified_at, NOW()), updated_at = NOW()
+          RETURNING *`, [profile.id, email, profile.displayName || email]);
+        done(null, rows[0]);
+      } catch (error) { done(error); }
+    }));
 
-  app.get('/auth/google', (req, res, next) => {
-    if (req.query.next === 'checkout') req.session.postLoginAction = 'checkout';
-    next();
-  }, passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
-  app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/account?login=failed' }), (req, res) => {
-    const shouldOpenCheckout = req.session?.postLoginAction === 'checkout';
-    if (req.session) delete req.session.postLoginAction;
-    res.redirect(shouldOpenCheckout ? '/account?checkout=1' : '/account');
-  });
+    app.get('/auth/google', (req, res, next) => {
+      if (req.query.next === 'checkout') req.session.postLoginAction = 'checkout';
+      next();
+    }, passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
+    app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/account?login=failed' }), (req, res) => {
+      const shouldOpenCheckout = req.session?.postLoginAction === 'checkout';
+      if (req.session) delete req.session.postLoginAction;
+      res.redirect(shouldOpenCheckout ? '/account?checkout=1' : '/account');
+    });
+  }
 }
 
 function isEnabled() { return authReady && databaseReady; }
@@ -207,7 +287,7 @@ function hasPayments() {
 }
 function requireAuth(req) {
   if (!isEnabled()) throw httpError(503, 'Accounts are being configured. Please check back soon.', 'FEATURES_UNAVAILABLE');
-  if (!req.isAuthenticated?.() || !req.user) throw httpError(401, 'Sign in with Google to continue.', 'AUTH_REQUIRED');
+  if (!req.isAuthenticated?.() || !req.user) throw httpError(401, 'Sign in to continue.', 'AUTH_REQUIRED');
   return req.user;
 }
 function assertSameOrigin(req) {
@@ -309,17 +389,179 @@ function registerWebhook(app) {
 }
 
 function registerRoutes(app) {
+  app.post('/api/auth/local/register', async (req, res) => {
+    let client;
+    try {
+      assertSameOrigin(req);
+      if (!isEnabled()) throw httpError(503, 'Account sign-up is temporarily unavailable.');
+      if (!getEmailTransport()) throw httpError(503, 'Email sign-up is being configured. Please use Google sign-in for now.');
+      if (req.isAuthenticated?.()) throw httpError(409, 'You are already signed in.');
+      const email = normalizeEmail(req.body?.email);
+      const password = req.body?.password;
+      if (!validEmail(email)) throw httpError(400, 'Enter a valid email address.');
+      if (!validPassword(password)) throw httpError(400, 'Use a password between 12 and 128 characters.');
+
+      const passwordHash = await hashPassword(password);
+      const { token, hash } = newEmailToken();
+      client = await pool.connect();
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [email]);
+      const existing = await client.query('SELECT id FROM users WHERE LOWER(email) = $1', [email]);
+      if (existing.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'An account may already exist for this email. Sign in or use Google.' });
+      }
+      const { rows } = await client.query(`
+        INSERT INTO users (google_subject, email, display_name, password_hash)
+        VALUES (NULL, $1, $2, $3) RETURNING *`, [email, email.split('@')[0].slice(0, 80), passwordHash]);
+      const checkoutAfterVerify = req.body?.next === 'checkout';
+      await client.query(`INSERT INTO account_email_tokens (token_hash, user_id, purpose, checkout_after_verify, expires_at)
+        VALUES ($1, $2, 'verify', $3, NOW() + INTERVAL '24 hours')`, [hash, rows[0].id, checkoutAfterVerify]);
+      await client.query('COMMIT');
+      let emailSent = true;
+      try { await sendAccountEmail(rows[0], token, 'verify', checkoutAfterVerify); }
+      catch (error) { emailSent = false; console.error('Account verification email failed:', error.message); }
+      res.status(202).json({ message: emailSent ? 'Check your email for a verification link. It expires in 24 hours.' : 'Your account is ready for verification, but the email could not be delivered. Check the email settings and request a new verification link.' });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK').catch(() => {});
+      res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not create the account. Please try again.' });
+    } finally { client?.release(); }
+  });
+
+  app.post('/api/auth/local/resend-verification', async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      if (!isEnabled() || !getEmailTransport()) throw httpError(503, 'Email sign-up is being configured.');
+      const email = normalizeEmail(req.body?.email);
+      if (validEmail(email)) {
+        const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND email_verified_at IS NULL AND password_hash IS NOT NULL', [email]);
+        if (rows[0]) {
+          const { token, hash } = newEmailToken();
+          await pool.query(`DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'verify'`, [rows[0].id]);
+          const checkoutAfterVerify = req.body?.next === 'checkout';
+          await pool.query(`INSERT INTO account_email_tokens (token_hash, user_id, purpose, checkout_after_verify, expires_at)
+            VALUES ($1, $2, 'verify', $3, NOW() + INTERVAL '24 hours')`, [hash, rows[0].id, checkoutAfterVerify]);
+          await sendAccountEmail(rows[0], token, 'verify', checkoutAfterVerify);
+        }
+      }
+      res.json({ message: 'If the account needs verification, a new link has been sent.' });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not send the verification email.' }); }
+  });
+
+  app.post('/api/auth/local/verify', async (req, res) => {
+    let client;
+    try {
+      assertSameOrigin(req);
+      const token = String(req.body?.token || '');
+      if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) throw httpError(400, 'This verification link is invalid or expired.');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      client = await pool.connect();
+      await client.query('BEGIN');
+      const { rows } = await client.query(`SELECT u.*, t.checkout_after_verify FROM account_email_tokens t JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1 AND t.purpose = 'verify' AND t.expires_at > NOW() FOR UPDATE OF t, u`, [tokenHash]);
+      if (!rows[0]) { await client.query('ROLLBACK'); throw httpError(400, 'This verification link is invalid or expired.'); }
+      const { rows: updated } = await client.query('UPDATE users SET email_verified_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING *', [rows[0].id]);
+      await client.query("DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'verify'", [rows[0].id]);
+      await client.query('COMMIT');
+      await establishLogin(req, updated[0]);
+      res.json({ ok: true, checkout: rows[0].checkout_after_verify });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK').catch(() => {});
+      res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not verify this email.' });
+    } finally { client?.release(); }
+  });
+
+  app.post('/api/auth/local/login', async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      if (!isEnabled()) throw httpError(503, 'Account sign-in is temporarily unavailable.');
+      const email = normalizeEmail(req.body?.email);
+      const password = req.body?.password;
+      if (!validEmail(email) || typeof password !== 'string' || password.length > 128) throw httpError(401, 'Email or password is incorrect.');
+      const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND password_hash IS NOT NULL', [email]);
+      const user = rows[0];
+      if (!user || !await verifyPassword(password, user.password_hash)) throw httpError(401, 'Email or password is incorrect.');
+      if (!user.email_verified_at) throw httpError(403, 'Verify your email before signing in, or request a new verification link.');
+      await establishLogin(req, user);
+      res.json({ ok: true });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not sign in. Please try again.' }); }
+  });
+
+  app.post('/api/auth/local/forgot-password', async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      if (!isEnabled() || !getEmailTransport()) throw httpError(503, 'Password recovery is being configured.');
+      const email = normalizeEmail(req.body?.email);
+      if (validEmail(email)) {
+        const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND password_hash IS NOT NULL AND email_verified_at IS NOT NULL', [email]);
+        if (rows[0]) {
+          const { token, hash } = newEmailToken();
+          const checkoutAfterReset = req.body?.next === 'checkout';
+          await pool.query("DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'reset'", [rows[0].id]);
+          await pool.query(`INSERT INTO account_email_tokens (token_hash, user_id, purpose, checkout_after_verify, expires_at)
+            VALUES ($1, $2, 'reset', $3, NOW() + INTERVAL '30 minutes')`, [hash, rows[0].id, checkoutAfterReset]);
+          await sendAccountEmail(rows[0], token, 'reset', checkoutAfterReset);
+        }
+      }
+      res.json({ message: 'If a verified local account exists for this email, a password reset link has been sent.' });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not send the password reset email.' }); }
+  });
+
+  app.post('/api/auth/local/reset-password', async (req, res) => {
+    let client;
+    try {
+      assertSameOrigin(req);
+      const token = String(req.body?.token || '');
+      const password = req.body?.password;
+      if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) throw httpError(400, 'This password reset link is invalid or expired.');
+      if (!validPassword(password)) throw httpError(400, 'Use a password between 12 and 128 characters.');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const passwordHash = await hashPassword(password);
+      client = await pool.connect();
+      await client.query('BEGIN');
+      const { rows } = await client.query(`SELECT u.*, t.checkout_after_verify FROM account_email_tokens t JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1 AND t.purpose = 'reset' AND t.expires_at > NOW() FOR UPDATE OF t, u`, [tokenHash]);
+      if (!rows[0]) { await client.query('ROLLBACK'); throw httpError(400, 'This password reset link is invalid or expired.'); }
+      const { rows: updated } = await client.query('UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING *', [rows[0].id, passwordHash]);
+      await client.query("DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'reset'", [rows[0].id]);
+      await client.query('COMMIT');
+      await establishLogin(req, updated[0]);
+      res.json({ ok: true, checkout: rows[0].checkout_after_verify });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK').catch(() => {});
+      res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not reset the password.' });
+    } finally { client?.release(); }
+  });
+
+  app.post('/api/auth/local/set-password', async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      const user = requireAuth(req);
+      const password = req.body?.password;
+      if (!validPassword(password)) throw httpError(400, 'Use a password between 12 and 128 characters.');
+      if (user.password_hash && !await verifyPassword(String(req.body?.currentPassword || ''), user.password_hash)) {
+        throw httpError(401, 'Enter your current password to change it.');
+      }
+      const passwordHash = await hashPassword(password);
+      await pool.query('UPDATE users SET password_hash = $2, email_verified_at = COALESCE(email_verified_at, NOW()), updated_at = NOW() WHERE id = $1', [user.id, passwordHash]);
+      res.json({ ok: true });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not save the password.' }); }
+  });
+
   app.get('/api/me', async (req, res) => {
-    if (!isEnabled()) return res.json({ enabled: false, authenticated: false, paymentsEnabled: false });
-    if (!req.user) return res.json({ enabled: true, authenticated: false, paymentsEnabled: hasPayments() });
+    if (!isEnabled()) return res.json({ enabled: false, authenticated: false, paymentsEnabled: false, googleEnabled: googleAuthReady });
+    if (!req.user) return res.json({ enabled: true, authenticated: false, paymentsEnabled: hasPayments(), googleEnabled: googleAuthReady, emailRegistrationEnabled: Boolean(getEmailTransport()) });
     try {
       return res.json({
         enabled: true,
         authenticated: true,
         paymentsEnabled: hasPayments(),
+        googleEnabled: googleAuthReady,
+        emailRegistrationEnabled: Boolean(getEmailTransport()),
         user: {
           name: req.user.display_name,
           email: req.user.email,
+          localPasswordEnabled: Boolean(req.user.password_hash),
           premium: premiumEnabled(req.user),
           subscriptionStatus: req.user.subscription_status,
           trialEndsAt: req.user.trial_ends_at
