@@ -15,6 +15,7 @@ membership.registerWebhook(app);
 membership.configureAuthentication(app);
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -57,6 +58,7 @@ app.get([...pageRoutes.keys()], (req, res, next) => {
   res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
   res.sendFile(path.join(__dirname, file), (err) => { if (err) next(err); });
 });
+// Keep existing asset URLs working for cached pages and bookmarks.
 app.get('/styles.css', (_req, res) => res.sendFile(path.join(__dirname, 'styles.css'), { maxAge: '1d' }));
 app.get('/app.js', (_req, res) => res.sendFile(path.join(__dirname, 'app.js'), { maxAge: '1d' }));
 app.get('/member.js', (_req, res) => res.sendFile(path.join(__dirname, 'member.js'), { maxAge: '1d' }));
@@ -64,9 +66,17 @@ app.get('/lessons-page.js', (_req, res) => res.sendFile(path.join(__dirname, 'le
 app.get('/lesson-page.js', (_req, res) => res.sendFile(path.join(__dirname, 'lesson-page.js'), { maxAge: '1d' }));
 app.get('/account.js', (_req, res) => res.sendFile(path.join(__dirname, 'account.js'), { maxAge: '1d' }));
 app.get('/journal.js', (_req, res) => res.sendFile(path.join(__dirname, 'journal.js'), { maxAge: '1d' }));
+app.get('/styles.min.css', (_req, res) => res.sendFile(path.join(__dirname, 'styles.min.css'), { maxAge: '1y', immutable: true }));
+app.get('/app.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'app.min.js'), { maxAge: '1y', immutable: true }));
+app.get('/member.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'member.min.js'), { maxAge: '1y', immutable: true }));
+app.get('/lessons-page.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'lessons-page.min.js'), { maxAge: '1y', immutable: true }));
+app.get('/lesson-page.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'lesson-page.min.js'), { maxAge: '1y', immutable: true }));
+app.get('/account.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'account.min.js'), { maxAge: '1y', immutable: true }));
+app.get('/journal.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'journal.min.js'), { maxAge: '1y', immutable: true }));
 app.get('/favicon.svg', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.svg'), { maxAge: '7d' }));
 app.get('/robots.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt')));
 app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'sitemap.xml')));
+app.get('/llms.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'llms.txt')));
 
 const upload = multer({
   storage: multer.memoryStorage(),

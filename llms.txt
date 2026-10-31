@@ -1,0 +1,23 @@
+# CandleTutor
+
+> CandleTutor is an English-language educational website for learning to read trading charts, understand technical-analysis concepts, and review the limits of AI-generated chart explanations. It does not provide live market data, personalized investment advice, or guaranteed trading outcomes.
+
+## Main pages
+- [Home and chart analyzer](https://www.candletutor.com/): Upload a chart screenshot for an educational explanation of visible evidence and possible scenarios.
+- [How chart analysis works](https://www.candletutor.com/how-it-works): Learn how to prepare an image, add context, and review an analysis responsibly.
+- [Learning guides](https://www.candletutor.com/learn): Browse public chart-reading and risk-management guides.
+- [Trading lessons](https://www.candletutor.com/lessons): Explore the structured course; the first three lessons are free and further lessons require Premium.
+- [Support and resistance](https://www.candletutor.com/learn/support-and-resistance): Educational guide to identifying and interpreting chart levels.
+- [Technical analysis](https://www.candletutor.com/learn/technical-analysis): Beginner guide to chart structure, evidence, and uncertainty.
+- [Chart patterns](https://www.candletutor.com/learn/chart-patterns): Learn to treat patterns as hypotheses that need context.
+- [Risk management](https://www.candletutor.com/learn/risk-management): Educational information about uncertainty and risk controls.
+- [Frequently asked questions](https://www.candletutor.com/faq): Product, privacy, analysis, and subscription answers.
+- [Pricing](https://www.candletutor.com/pricing): Free and Premium plan limits and billing terms.
+- [About CandleTutor](https://www.candletutor.com/about): Product purpose and limitations.
+- [Privacy and data](https://www.candletutor.com/privacy): How account, chart, and payment information is handled.
+
+## Policies
+- [Sitemap](https://www.candletutor.com/sitemap.xml)
+- [Robots instructions](https://www.candletutor.com/robots.txt)
+
+Private account pages and API routes are not public learning content. Treat chart analysis as educational material, not a current-market signal or financial recommendation.
