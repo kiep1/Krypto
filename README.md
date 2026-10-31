@@ -12,6 +12,8 @@ Official website: [CandleTutor — trading chart education](https://www.candletu
 
 Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and session secret, account features remain disabled. Email registration and password recovery need SMTP; Google sign-in is optional.
 
+When changing browser JavaScript or styles, run `npm run build:assets` and commit the generated `.min.js` and `.min.css` files together with their sources.
+
 Never commit `.env`, database URLs, OAuth credentials, OpenAI keys, Stripe secrets, or the Premium content key. See [MEMBERSHIP-SETUP.md](MEMBERSHIP-SETUP.md) for production setup.
 
 ## Membership behavior
