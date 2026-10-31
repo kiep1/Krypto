@@ -40,61 +40,90 @@
   function createLocalAuth(state) {
     const box = document.createElement('div'); box.className = 'local-auth';
     let mode = 'login';
+    let emailValue = '';
+    let newsletterOptIn = false;
+    let verificationMessage = '';
     const render = () => {
       box.replaceChildren();
+      if (mode === 'verify') {
+        const heading = document.createElement('h3'); heading.textContent = 'Check your email';
+        const description = document.createElement('p');
+        description.className = 'account-auth-note';
+        description.textContent = verificationMessage || `Your account needs email verification. Check the inbox and spam folder for ${emailValue}. If no message arrived, send a new link below. Verification links expire after 24 hours.`;
+        const resend = button('Resend verification email', async () => {
+          resend.disabled = true; resend.textContent = 'Sending…';
+          try {
+            setMessage('Sending a new verification link…');
+            const result = await post('/api/auth/local/resend-verification', 'POST', { email: emailValue, next: checkoutRequested ? 'checkout' : '' });
+            verificationMessage = `If ${emailValue} has an unverified account, a new link has been sent. Check your inbox and spam folder.`;
+            description.textContent = verificationMessage;
+            setMessage(result.message);
+          } catch (error) { setMessage(error.message); }
+          finally { resend.disabled = false; resend.textContent = 'Send a new verification link'; }
+        }, 'button secondary');
+        const back = button('Back to sign in', () => { mode = 'login'; setMessage(''); render(); });
+        box.append(heading, description, resend, back);
+        return;
+      }
       const heading = document.createElement('h3');
-      heading.textContent = mode === 'register' ? 'Create an account with email' : mode === 'forgot' ? 'Reset your password' : 'Sign in with email';
+      heading.textContent = mode === 'register' ? 'Create your free account' : mode === 'forgot' ? 'Reset your password' : 'Sign in with email';
       const form = document.createElement('form'); form.className = 'account-auth-form';
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const email = form.elements.email.value.trim();
+        emailValue = form.elements.email.value.trim();
         const password = form.elements.password?.value || '';
+        const submit = form.querySelector('[type="submit"]');
+        const originalLabel = submit.textContent;
+        submit.disabled = true;
+        submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'forgot' ? 'Sending link…' : 'Signing in…';
         try {
           if (mode === 'forgot') {
-            const result = await post('/api/auth/local/forgot-password', 'POST', { email });
+            const result = await post('/api/auth/local/forgot-password', 'POST', { email: emailValue });
             setMessage(result.message); mode = 'login'; render(); return;
           }
           if (mode === 'register') {
-            const result = await post('/api/auth/local/register', 'POST', { email, password, next: checkoutRequested ? 'checkout' : '' });
-            setMessage(result.message); mode = 'login'; render();
-            const resend = button('Resend verification email', async () => {
-              try {
-                const resendResult = await post('/api/auth/local/resend-verification', 'POST', { email, next: checkoutRequested ? 'checkout' : '' });
-                setMessage(resendResult.message);
-              } catch (resendError) { setMessage(resendError.message); }
-            }, 'button secondary');
-            box.append(resend); return;
+            const result = await post('/api/auth/local/register', 'POST', { email: emailValue, password, newsletterOptIn, next: checkoutRequested ? 'checkout' : '' });
+            verificationMessage = result.message.toLowerCase().includes('could not be delivered')
+              ? 'We could not send the verification email. Please try sending a new link below after the email service is available.'
+              : `We sent a verification link to ${emailValue}. Check your inbox and spam folder. The link expires in 24 hours.`;
+            mode = 'verify'; setMessage(result.message); render(); return;
           }
-          await post('/api/auth/local/login', 'POST', { email, password });
+          await post('/api/auth/local/login', 'POST', { email: emailValue, password });
           window.location.reload();
         } catch (error) {
           setMessage(error.message);
-          if (error.message.toLowerCase().includes('verify your email')) {
-            const resend = button('Resend verification email', async () => {
-              try {
-                const result = await post('/api/auth/local/resend-verification', 'POST', { email, next: checkoutRequested ? 'checkout' : '' });
-                setMessage(result.message);
-              } catch (resendError) { setMessage(resendError.message); }
-            }, 'button secondary');
-            box.append(resend);
-          }
+          if (error.message.toLowerCase().includes('verify your email')) { verificationMessage = ''; mode = 'verify'; render(); }
+        } finally {
+          submit.disabled = false; submit.textContent = originalLabel;
         }
       });
-      const emailLabel = document.createElement('label'); emailLabel.textContent = 'Email';
-      const email = document.createElement('input'); email.type = 'email'; email.name = 'email'; email.required = true; email.maxLength = 254; email.autocomplete = 'email'; email.placeholder = 'you@example.com'; emailLabel.append(email); form.append(emailLabel);
+      const emailLabel = document.createElement('label'); emailLabel.textContent = 'Email address';
+      const email = document.createElement('input'); email.type = 'email'; email.name = 'email'; email.required = true; email.maxLength = 254; email.autocomplete = 'email'; email.placeholder = 'you@example.com'; email.value = emailValue;
+      email.addEventListener('input', () => { emailValue = email.value; });
+      emailLabel.append(email); form.append(emailLabel);
       if (mode !== 'forgot') {
-        const passwordLabel = document.createElement('label'); passwordLabel.textContent = mode === 'register' ? 'Password (12 characters minimum)' : 'Password';
+        const passwordLabel = document.createElement('label');
+        passwordLabel.textContent = mode === 'register' ? 'Password (at least 12 characters)' : 'Password';
         const password = document.createElement('input'); password.type = 'password'; password.name = 'password'; password.required = true; password.maxLength = 128; password.autocomplete = mode === 'register' ? 'new-password' : 'current-password';
         if (mode === 'register') password.minLength = 12;
         passwordLabel.append(password); form.append(passwordLabel);
+      }
+      if (mode === 'register') {
+        const consent = document.createElement('label'); consent.className = 'newsletter-consent';
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = 'newsletterOptIn'; checkbox.checked = newsletterOptIn;
+        checkbox.addEventListener('change', () => { newsletterOptIn = checkbox.checked; });
+        const consentText = document.createElement('span'); consentText.textContent = 'Send me occasional CandleTutor learning tips and product updates. Optional; unsubscribe anytime.';
+        consent.append(checkbox, consentText); form.append(consent);
+        const privacy = document.createElement('p'); privacy.className = 'account-auth-note'; privacy.innerHTML = 'Your email is used for account verification. Newsletter emails are sent only if you opt in. <a href="/privacy">Privacy details</a>.';
+        form.append(privacy);
       }
       const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'button primary';
       submit.textContent = mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in';
       form.append(submit); box.append(heading, form);
       const links = document.createElement('div'); links.className = 'account-auth-links';
       if (mode === 'login' && state.emailRegistrationEnabled) {
-        const create = button('Create a new account', () => { mode = 'register'; setMessage(''); render(); }); links.append(create);
-        const forgot = button('Forgot password?', () => { mode = 'forgot'; setMessage(''); render(); }); links.append(forgot);
+        links.append(button('Create a new account', () => { mode = 'register'; setMessage(''); render(); }));
+        links.append(button('Forgot password?', () => { mode = 'forgot'; setMessage(''); render(); }));
       } else if (mode === 'register' || mode === 'forgot') {
         links.append(button('Back to sign in', () => { mode = 'login'; setMessage(''); render(); }));
       }
@@ -107,6 +136,30 @@
     };
     render();
     return box;
+  }
+  function createNewsletterSettings(state) {
+    const section = document.createElement('section'); section.className = 'newsletter-settings';
+    const heading = document.createElement('h3'); heading.textContent = 'Newsletter preferences';
+    const description = document.createElement('p'); description.className = 'account-auth-note';
+    description.textContent = 'Choose whether to receive occasional CandleTutor learning tips and product updates. This is optional and you can change it any time.';
+    const form = document.createElement('form'); form.className = 'account-auth-form';
+    const label = document.createElement('label'); label.className = 'newsletter-consent';
+    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = Boolean(state.user.newsletterOptIn);
+    const labelText = document.createElement('span'); labelText.textContent = 'Email me occasional CandleTutor updates.';
+    label.append(checkbox, labelText);
+    const save = document.createElement('button'); save.type = 'submit'; save.className = 'button secondary'; save.textContent = 'Save preference';
+    form.append(label, save);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); save.disabled = true; save.textContent = 'Saving…';
+      try {
+        const result = await post('/api/account/newsletter', 'POST', { optIn: checkbox.checked });
+        checkbox.checked = result.newsletterOptIn;
+        setMessage('Your newsletter preference has been saved.');
+      } catch (error) { setMessage(error.message); }
+      finally { save.disabled = false; save.textContent = 'Save preference'; }
+    });
+    section.append(heading, description, form);
+    return section;
   }
   function createResetForm(token) {
     const form = document.createElement('form'); form.className = 'account-auth-form';
@@ -193,6 +246,7 @@
       else { const pending = document.createElement('p'); pending.textContent = 'Premium checkout is being configured.'; actions.append(pending); }
       const journalLink = document.createElement('a'); journalLink.className = 'button secondary'; journalLink.href = '/journal'; journalLink.textContent = 'Open saved analyses';
       actions.append(journalLink, button('Sign out', logout), button('Delete account and data', deleteAccount, 'button danger'));
+      const newsletterSettings = createNewsletterSettings(state);
       const passwordDetails = document.createElement('details'); passwordDetails.className = 'local-password-settings';
       const passwordSummary = document.createElement('summary'); passwordSummary.textContent = state.user.localPasswordEnabled ? 'Change local password' : 'Set up email and password sign-in';
       const passwordForm = document.createElement('form'); passwordForm.className = 'account-auth-form';
@@ -212,8 +266,8 @@
         } catch (error) { setMessage(error.message); }
       });
       passwordDetails.append(passwordSummary, passwordForm);
-      if (!state.user.premium && state.paymentsEnabled) panel.append(heading, email, plan, trialNotice, usage, actions, passwordDetails);
-      else panel.append(heading, email, plan, usage, actions, passwordDetails);
+      if (!state.user.premium && state.paymentsEnabled) panel.append(heading, email, plan, trialNotice, usage, actions, newsletterSettings, passwordDetails);
+      else panel.append(heading, email, plan, usage, actions, newsletterSettings, passwordDetails);
     } catch {
       panel.textContent = 'Your account could not be loaded. Please refresh the page.';
     }
