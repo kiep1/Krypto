@@ -165,6 +165,9 @@ async function initializeDatabase() {
     ALTER TABLE users ALTER COLUMN google_subject DROP NOT NULL;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS newsletter_opt_in BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS newsletter_opt_in_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS newsletter_opt_out_at TIMESTAMPTZ;
     UPDATE users SET email_verified_at = NOW() WHERE google_subject IS NOT NULL AND email_verified_at IS NULL;
     CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx ON users (LOWER(email));
     CREATE TABLE IF NOT EXISTS account_email_tokens (
@@ -402,6 +405,7 @@ function registerRoutes(app) {
       if (!validPassword(password)) throw httpError(400, 'Use a password between 12 and 128 characters.');
 
       const passwordHash = await hashPassword(password);
+      const newsletterOptIn = req.body?.newsletterOptIn === true;
       const { token, hash } = newEmailToken();
       client = await pool.connect();
       await client.query('BEGIN');
@@ -412,8 +416,8 @@ function registerRoutes(app) {
         return res.status(409).json({ error: 'An account may already exist for this email. Sign in or use Google.' });
       }
       const { rows } = await client.query(`
-        INSERT INTO users (google_subject, email, display_name, password_hash)
-        VALUES (NULL, $1, $2, $3) RETURNING *`, [email, email.split('@')[0].slice(0, 80), passwordHash]);
+        INSERT INTO users (google_subject, email, display_name, password_hash, newsletter_opt_in, newsletter_opt_in_at)
+        VALUES (NULL, $1, $2, $3, $4, CASE WHEN $4 THEN NOW() ELSE NULL END) RETURNING *`, [email, email.split('@')[0].slice(0, 80), passwordHash, newsletterOptIn]);
       const checkoutAfterVerify = req.body?.next === 'checkout';
       await client.query(`INSERT INTO account_email_tokens (token_hash, user_id, purpose, checkout_after_verify, expires_at)
         VALUES ($1, $2, 'verify', $3, NOW() + INTERVAL '24 hours')`, [hash, rows[0].id, checkoutAfterVerify]);
@@ -548,6 +552,20 @@ function registerRoutes(app) {
     } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not save the password.' }); }
   });
 
+  app.post('/api/account/newsletter', async (req, res) => {
+    try {
+      assertSameOrigin(req);
+      const user = requireAuth(req);
+      if (typeof req.body?.optIn !== 'boolean') throw httpError(400, 'Choose whether to receive newsletter emails.');
+      const { rows } = await pool.query(`
+        UPDATE users SET newsletter_opt_in = $2,
+          newsletter_opt_in_at = CASE WHEN $2 THEN NOW() ELSE newsletter_opt_in_at END,
+          newsletter_opt_out_at = CASE WHEN $2 THEN NULL ELSE NOW() END, updated_at = NOW()
+        WHERE id = $1 RETURNING newsletter_opt_in`, [user.id, req.body.optIn]);
+      res.json({ newsletterOptIn: Boolean(rows[0]?.newsletter_opt_in) });
+    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not save your newsletter preference.' }); }
+  });
+
   app.get('/api/me', async (req, res) => {
     if (!isEnabled()) return res.json({ enabled: false, authenticated: false, paymentsEnabled: false, googleEnabled: googleAuthReady });
     if (!req.user) return res.json({ enabled: true, authenticated: false, paymentsEnabled: hasPayments(), googleEnabled: googleAuthReady, emailRegistrationEnabled: Boolean(getEmailTransport()) });
@@ -561,6 +579,7 @@ function registerRoutes(app) {
         user: {
           name: req.user.display_name,
           email: req.user.email,
+          newsletterOptIn: Boolean(req.user.newsletter_opt_in),
           localPasswordEnabled: Boolean(req.user.password_hash),
           premium: premiumEnabled(req.user),
           subscriptionStatus: req.user.subscription_status,
