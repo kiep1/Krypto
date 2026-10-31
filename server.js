@@ -74,6 +74,7 @@ app.get('/lesson-page.min.js', (_req, res) => res.sendFile(path.join(__dirname, 
 app.get('/account.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'account.min.js'), { maxAge: '1y', immutable: true }));
 app.get('/journal.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'journal.min.js'), { maxAge: '1y', immutable: true }));
 app.get('/favicon.svg', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.svg'), { maxAge: '7d' }));
+app.get('/favicon.png', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.png'), { maxAge: '1y', immutable: true }));
 app.get('/robots.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt')));
 app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'sitemap.xml')));
 app.get('/llms.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'llms.txt')));
