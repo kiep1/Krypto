@@ -1,6 +1,6 @@
 # CandleTutor membership setup
 
-Member features require a database and session secret. Email/password registration and recovery also require SMTP settings; Google sign-in is optional. Stripe billing requires the Stripe settings and Premium content key.
+Member features require a database and session secret. Email/password registration and recovery require a working email delivery provider; Google sign-in is optional. Stripe billing requires the Stripe settings and Premium content key.
 
 ## 1. Create persistent storage
 
@@ -10,7 +10,14 @@ The app stores each signed-in analysis image as a PostgreSQL binary value along 
 
 ## 2. Configure local email/password accounts
 
-Add these SMTP settings to the Render web service to enable email verification and password recovery. Use credentials from a transactional email provider whose sender domain is verified:
+For Render Free, use Resend's HTTPS email API. Add these variables to the Render web service:
+
+- `RESEND_API_KEY` — create an API key in Resend and store it as a secret in Render
+- `EMAIL_FROM` — sender address on a domain verified with Resend, for example `CandleTutor <no-reply@candletutor.com>`
+
+The application sends API requests to Resend over HTTPS. Verify `candletutor.com` in Resend and publish the DNS records Resend provides before testing. The API key takes priority if SMTP variables are also present.
+
+SMTP is supported as an alternative on hosts/plans that permit it. On Render Free, outbound SMTP ports 25, 465, and 587 are blocked, so SMTP attempts time out. To keep SMTP, upgrade the web service to a paid plan and use these settings:
 
 - `SMTP_HOST` — provider SMTP hostname
 - `SMTP_PORT` — usually `587` for STARTTLS or `465` for implicit TLS

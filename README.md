@@ -8,9 +8,9 @@ Official website: [CandleTutor — trading chart education](https://www.candletu
 
 - Node.js 20 or newer
 - OpenAI API key for chart analysis and tutor responses
-- PostgreSQL and a session secret for accounts; SMTP for verified email/password sign-up and recovery; optional Google OAuth; Stripe credentials and the private Premium content key for Premium billing
+- PostgreSQL and a session secret for accounts; an HTTPS email provider (Resend) or SMTP on a host that allows it; optional Google OAuth; Stripe credentials and the private Premium content key for Premium billing
 
-Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and session secret, account features remain disabled. Email registration and password recovery need SMTP; Google sign-in is optional.
+Install dependencies with `npm install`, copy `.env.example` to `.env`, fill in the required values, and start with `npm start`. Open `http://localhost:3000`. Without a database and session secret, account features remain disabled. Email registration and password recovery need a configured email provider; Google sign-in is optional. See `MEMBERSHIP-SETUP.md` for Render's SMTP port restriction and the Resend HTTPS setup.
 
 When changing browser JavaScript or styles, run `npm run build:assets` and commit the generated `.min.js` and `.min.css` files together with their sources.
 

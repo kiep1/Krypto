@@ -9,8 +9,10 @@
   const setMessage = (value) => { message.textContent = value || ''; };
   const checkoutRequested = new URLSearchParams(location.search).get('checkout') === '1';
   async function post(url, method = 'POST', data = {}) {
-    const response = await fetch(url, { method, credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: method === 'POST' ? JSON.stringify(data) : undefined });
-    const payload = await response.json();
+    const response = await fetch(url, { method, credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: method === 'POST' ? JSON.stringify(data) : undefined, signal: AbortSignal.timeout(20_000) });
+    let payload;
+    try { payload = await response.json(); }
+    catch { throw new Error(response.ok ? 'The server returned an unexpected response. Please refresh and try again.' : `The request failed (HTTP ${response.status}). Please try again.`); }
     if (!response.ok) throw new Error(payload.error || 'The request could not be completed.');
     return payload;
   }
@@ -55,10 +57,16 @@
           try {
             setMessage('Sending a new verification link…');
             const result = await post('/api/auth/local/resend-verification', 'POST', { email: emailValue, next: checkoutRequested ? 'checkout' : '' });
-            verificationMessage = `If ${emailValue} has an unverified account, a new link has been sent. Check your inbox and spam folder.`;
+            verificationMessage = `Request received for ${emailValue}. If the account still needs verification, check your inbox and spam folder for a new link.`;
             description.textContent = verificationMessage;
             setMessage(result.message);
-          } catch (error) { setMessage(error.message); }
+          } catch (error) {
+            const feedback = error.name === 'TimeoutError'
+              ? 'The email request is taking too long. Please try again in a moment.'
+              : error.message;
+            description.textContent = feedback;
+            setMessage(feedback);
+          }
           finally { resend.disabled = false; resend.textContent = 'Send a new verification link'; }
         }, 'button secondary');
         const back = button('Back to sign in', () => { mode = 'login'; setMessage(''); render(); });
@@ -68,6 +76,7 @@
       const heading = document.createElement('h3');
       heading.textContent = mode === 'register' ? 'Create your free account' : mode === 'forgot' ? 'Reset your password' : 'Sign in with email';
       const form = document.createElement('form'); form.className = 'account-auth-form';
+      const feedback = document.createElement('p'); feedback.className = 'account-auth-note auth-feedback'; feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         emailValue = form.elements.email.value.trim();
@@ -76,23 +85,30 @@
         const originalLabel = submit.textContent;
         submit.disabled = true;
         submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'forgot' ? 'Sending link…' : 'Signing in…';
+        feedback.textContent = mode === 'register' ? 'Creating your account and sending the verification email…' : mode === 'forgot' ? 'Requesting a password reset link…' : 'Signing in…';
+        feedback.classList.remove('is-error', 'is-success');
         try {
           if (mode === 'forgot') {
             const result = await post('/api/auth/local/forgot-password', 'POST', { email: emailValue });
-            setMessage(result.message); mode = 'login'; render(); return;
+            setMessage(result.message); feedback.textContent = result.message; feedback.classList.add('is-success'); mode = 'login'; render(); return;
           }
           if (mode === 'register') {
             const result = await post('/api/auth/local/register', 'POST', { email: emailValue, password, newsletterOptIn, next: checkoutRequested ? 'checkout' : '' });
-            verificationMessage = result.message.toLowerCase().includes('could not be delivered')
-              ? 'We could not send the verification email. Please try sending a new link below after the email service is available.'
-              : `We sent a verification link to ${emailValue}. Check your inbox and spam folder. The link expires in 24 hours.`;
+            verificationMessage = result.emailSent === false
+              ? `Your account was created, but the verification email was not sent. ${result.message} You can retry below after email delivery is fixed.`
+              : `Account created. We sent a verification link to ${emailValue}. Check your inbox and spam folder. The link expires in 24 hours.`;
             mode = 'verify'; setMessage(result.message); render(); return;
           }
           await post('/api/auth/local/login', 'POST', { email: emailValue, password });
           window.location.reload();
         } catch (error) {
-          setMessage(error.message);
-          if (error.message.toLowerCase().includes('verify your email')) { verificationMessage = ''; mode = 'verify'; render(); }
+          const messageText = error.name === 'TimeoutError'
+            ? 'The request timed out. Your account may still have been created. Try signing in or request a new verification email.'
+            : error.message;
+          feedback.textContent = messageText;
+          feedback.classList.add('is-error');
+          setMessage(messageText);
+          if (messageText.toLowerCase().includes('verify your email')) { verificationMessage = ''; mode = 'verify'; render(); }
         } finally {
           submit.disabled = false; submit.textContent = originalLabel;
         }
@@ -119,7 +135,7 @@
       }
       const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'button primary';
       submit.textContent = mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in';
-      form.append(submit); box.append(heading, form);
+      form.append(feedback, submit); box.append(heading, form);
       const links = document.createElement('div'); links.className = 'account-auth-links';
       if (mode === 'login' && state.emailRegistrationEnabled) {
         links.append(button('Create a new account', () => { mode = 'register'; setMessage(''); render(); }));

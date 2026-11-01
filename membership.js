@@ -52,10 +52,25 @@ function getEmailTransport() {
       host: process.env.SMTP_HOST,
       port,
       secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000
     });
   }
   return emailTransport;
+}
+function emailDeliveryReady() {
+  return Boolean(process.env.EMAIL_FROM && (process.env.RESEND_API_KEY || getEmailTransport()));
+}
+function emailDeliveryFailureMessage(error) {
+  if (!process.env.RESEND_API_KEY && /timeout|timed out|ETIMEDOUT/i.test(error?.message || '')) {
+    return 'SMTP connection timed out. Render Free blocks outbound SMTP on ports 25, 465, and 587. Add RESEND_API_KEY to send email over HTTPS, or upgrade the Render web service.';
+  }
+  if (process.env.RESEND_API_KEY) {
+    return 'The email provider did not accept the message. Check the RESEND_API_KEY and make sure EMAIL_FROM uses a verified sender address.';
+  }
+  return 'The verification email could not be sent. Check the email settings, then request a new verification link.';
 }
 
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
@@ -83,20 +98,40 @@ function establishLogin(req, user) {
   return new Promise((resolve, reject) => req.login(user, (error) => error ? reject(error) : resolve()));
 }
 async function sendAccountEmail(user, token, purpose, checkoutAfterVerify = false) {
-  const transport = getEmailTransport();
-  if (!transport) throw httpError(503, 'Email sign-up and password recovery are not configured yet.');
+  if (!emailDeliveryReady()) throw httpError(503, 'Email sign-up and password recovery are not configured yet.');
   const appOrigin = process.env.APP_ORIGIN || 'https://www.candletutor.com';
   const path = purpose === 'verify' ? '/account?verify=' : '/account?reset=';
   const url = `${appOrigin}${path}${encodeURIComponent(token)}${checkoutAfterVerify ? '&checkout=1' : ''}`;
   const isVerify = purpose === 'verify';
-  await transport.sendMail({
-    from: process.env.EMAIL_FROM,
-    to: user.email,
-    subject: isVerify ? 'Verify your CandleTutor email' : 'Reset your CandleTutor password',
-    text: isVerify
-      ? `Verify your CandleTutor account by opening this link: ${url}\n\nThis link expires in 24 hours. If you did not request this, you can ignore this email.`
-      : `Reset your CandleTutor password by opening this link: ${url}\n\nThis link expires in 30 minutes. If you did not request this, you can ignore this email.`
-  });
+  const subject = isVerify ? 'Verify your CandleTutor email' : 'Reset your CandleTutor password';
+  const text = isVerify
+    ? `Verify your CandleTutor account by opening this link: ${url}\n\nThis link expires in 24 hours. If you did not request this, you can ignore this email.`
+    : `Reset your CandleTutor password by opening this link: ${url}\n\nThis link expires in 30 minutes. If you did not request this, you can ignore this email.`;
+
+  // Render's free web services block outbound SMTP ports. Prefer the HTTPS API
+  // so verification works there without requiring a paid Render instance.
+  if (process.env.RESEND_API_KEY) {
+    let response;
+    try {
+      response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [user.email], subject, text }),
+        signal: AbortSignal.timeout(10_000)
+      });
+    } catch (error) {
+      throw new Error(error.name === 'TimeoutError' ? 'Email provider request timed out.' : 'Could not reach the email provider over HTTPS.');
+    }
+    if (!response.ok) throw new Error(`Email provider rejected the message (HTTP ${response.status}). Check the API key and verified sender address.`);
+    return;
+  }
+
+  const transport = getEmailTransport();
+  if (!transport) throw httpError(503, 'Email sign-up and password recovery are not configured yet.');
+  await transport.sendMail({ from: process.env.EMAIL_FROM, to: user.email, subject, text });
 }
 
 function httpError(status, message, code) {
@@ -397,7 +432,7 @@ function registerRoutes(app) {
     try {
       assertSameOrigin(req);
       if (!isEnabled()) throw httpError(503, 'Account sign-up is temporarily unavailable.');
-      if (!getEmailTransport()) throw httpError(503, 'Email sign-up is being configured. Please use Google sign-in for now.');
+      if (!emailDeliveryReady()) throw httpError(503, 'Email sign-up is being configured. Please use Google sign-in for now.');
       if (req.isAuthenticated?.()) throw httpError(409, 'You are already signed in.');
       const email = normalizeEmail(req.body?.email);
       const password = req.body?.password;
@@ -423,9 +458,15 @@ function registerRoutes(app) {
         VALUES ($1, $2, 'verify', $3, NOW() + INTERVAL '24 hours')`, [hash, rows[0].id, checkoutAfterVerify]);
       await client.query('COMMIT');
       let emailSent = true;
+      let emailError = null;
       try { await sendAccountEmail(rows[0], token, 'verify', checkoutAfterVerify); }
-      catch (error) { emailSent = false; console.error('Account verification email failed:', error.message); }
-      res.status(202).json({ message: emailSent ? 'Check your email for a verification link. It expires in 24 hours.' : 'Your account is ready for verification, but the email could not be delivered. Check the email settings and request a new verification link.' });
+      catch (error) { emailSent = false; emailError = error; console.error('Account verification email failed:', error.message); }
+      res.status(202).json({
+        emailSent,
+        message: emailSent
+          ? 'Account created. Check your inbox and spam folder for the verification link. It expires in 24 hours.'
+          : `Your account was created, but ${emailDeliveryFailureMessage(emailError)} After fixing email delivery, choose “Send a new verification link”.`
+      });
     } catch (error) {
       if (client) await client.query('ROLLBACK').catch(() => {});
       res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not create the account. Please try again.' });
@@ -435,21 +476,26 @@ function registerRoutes(app) {
   app.post('/api/auth/local/resend-verification', async (req, res) => {
     try {
       assertSameOrigin(req);
-      if (!isEnabled() || !getEmailTransport()) throw httpError(503, 'Email sign-up is being configured.');
+      if (!isEnabled() || !emailDeliveryReady()) throw httpError(503, 'Email sign-up is being configured.');
       const email = normalizeEmail(req.body?.email);
       if (validEmail(email)) {
         const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND email_verified_at IS NULL AND password_hash IS NOT NULL', [email]);
         if (rows[0]) {
           const { token, hash } = newEmailToken();
-          await pool.query(`DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'verify'`, [rows[0].id]);
           const checkoutAfterVerify = req.body?.next === 'checkout';
           await pool.query(`INSERT INTO account_email_tokens (token_hash, user_id, purpose, checkout_after_verify, expires_at)
             VALUES ($1, $2, 'verify', $3, NOW() + INTERVAL '24 hours')`, [hash, rows[0].id, checkoutAfterVerify]);
-          await sendAccountEmail(rows[0], token, 'verify', checkoutAfterVerify);
+          try {
+            await sendAccountEmail(rows[0], token, 'verify', checkoutAfterVerify);
+            await pool.query("DELETE FROM account_email_tokens WHERE user_id = $1 AND purpose = 'verify' AND token_hash <> $2", [rows[0].id, hash]);
+          } catch (error) {
+            await pool.query('DELETE FROM account_email_tokens WHERE token_hash = $1', [hash]);
+            throw error;
+          }
         }
       }
       res.json({ message: 'If the account needs verification, a new link has been sent.' });
-    } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not send the verification email.' }); }
+    } catch (error) { res.status(error.status || 502).json({ error: error.status ? error.message : emailDeliveryFailureMessage(error) }); }
   });
 
   app.post('/api/auth/local/verify', async (req, res) => {
@@ -494,7 +540,7 @@ function registerRoutes(app) {
   app.post('/api/auth/local/forgot-password', async (req, res) => {
     try {
       assertSameOrigin(req);
-      if (!isEnabled() || !getEmailTransport()) throw httpError(503, 'Password recovery is being configured.');
+      if (!isEnabled() || !emailDeliveryReady()) throw httpError(503, 'Password recovery is being configured.');
       const email = normalizeEmail(req.body?.email);
       if (validEmail(email)) {
         const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND password_hash IS NOT NULL AND email_verified_at IS NOT NULL', [email]);
@@ -568,14 +614,14 @@ function registerRoutes(app) {
 
   app.get('/api/me', async (req, res) => {
     if (!isEnabled()) return res.json({ enabled: false, authenticated: false, paymentsEnabled: false, googleEnabled: googleAuthReady });
-    if (!req.user) return res.json({ enabled: true, authenticated: false, paymentsEnabled: hasPayments(), googleEnabled: googleAuthReady, emailRegistrationEnabled: Boolean(getEmailTransport()) });
+    if (!req.user) return res.json({ enabled: true, authenticated: false, paymentsEnabled: hasPayments(), googleEnabled: googleAuthReady, emailRegistrationEnabled: emailDeliveryReady() });
     try {
       return res.json({
         enabled: true,
         authenticated: true,
         paymentsEnabled: hasPayments(),
         googleEnabled: googleAuthReady,
-        emailRegistrationEnabled: Boolean(getEmailTransport()),
+        emailRegistrationEnabled: emailDeliveryReady(),
         user: {
           name: req.user.display_name,
           email: req.user.email,
