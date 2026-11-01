@@ -2111,6 +2111,9 @@ textarea {
 .account-auth-form { display: grid; gap: 12px; max-width: 420px; }
 .account-auth-form label { display: grid; gap: 7px; color: var(--muted); font-size: 14px; font-weight: 600; }
 .account-auth-form .button { justify-self: start; }
+  .account-auth-form .auth-feedback { min-height: 1.4em; margin: 2px 0; color: var(--mint); }
+  .account-auth-form .auth-feedback.is-error { color: #ffc1c1; }
+  .account-auth-form .auth-feedback.is-success { color: var(--mint); }
 .newsletter-consent { display: flex !important; align-items: flex-start; gap: 10px !important; max-width: 420px; color: var(--text) !important; font-size: 14px; line-height: 1.5; }
 .newsletter-consent input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--mint); }
 .newsletter-settings { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
