@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="RSI indicator explained: the formula with a worked example, 14-period default, overbought and oversold levels, divergence, trend behaviour and common mistakes.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <title>RSI Indicator Explained: How the Relative Strength Index Works | CandleTutor</title>
+  <link rel="canonical" href="https://www.candletutor.com/learn/rsi-indicator">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="CandleTutor">
+  <meta property="og:title" content="RSI Indicator Explained: How the Relative Strength Index Works | CandleTutor">
+  <meta property="og:description" content="RSI indicator explained: the formula with a worked example, 14-period default, overbought and oversold levels, divergence, trend behaviour and common mistakes.">
+  <meta property="og:url" content="https://www.candletutor.com/learn/rsi-indicator">
+  <meta property="og:image" content="https://www.candletutor.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RSI Indicator Explained: How the Relative Strength Index Works | CandleTutor">
+  <meta name="twitter:description" content="RSI indicator explained: the formula with a worked example, 14-period default, overbought and oversold levels, divergence, trend behaviour and common mistakes.">
+  <meta name="twitter:image" content="https://www.candletutor.com/og-image.png">
+  <link rel="icon" href="/favicon.png" sizes="192x192" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.min.css?v=seo-20261107">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.candletutor.com/#organization","name":"CandleTutor","url":"https://www.candletutor.com/"},{"@type":"WebSite","@id":"https://www.candletutor.com/#website","name":"CandleTutor","url":"https://www.candletutor.com/","inLanguage":"en","publisher":{"@id":"https://www.candletutor.com/#organization"}},{"@type":"WebPage","@id":"https://www.candletutor.com/learn/rsi-indicator#webpage","url":"https://www.candletutor.com/learn/rsi-indicator","name":"RSI indicator explained: how the Relative Strength Index works | CandleTutor","description":"RSI indicator explained: the formula with a worked example, 14-period default, overbought and oversold levels, divergence, trend behaviour and common mistakes.","inLanguage":"en","isPartOf":{"@id":"https://www.candletutor.com/#website"},"breadcrumb":{"@id":"https://www.candletutor.com/learn/rsi-indicator#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://www.candletutor.com/learn/rsi-indicator#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.candletutor.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://www.candletutor.com/learn"},{"@type":"ListItem","position":3,"name":"RSI indicator explained","item":"https://www.candletutor.com/learn/rsi-indicator"}]},{"@type":"Article","headline":"RSI indicator explained: how the Relative Strength Index works","description":"RSI indicator explained: the formula with a worked example, 14-period default, overbought and oversold levels, divergence, trend behaviour and common mistakes.","mainEntityOfPage":"https://www.candletutor.com/learn/rsi-indicator","image":"https://www.candletutor.com/og-image.png","datePublished":"2026-11-07","dateModified":"2026-11-07","publisher":{"@id":"https://www.candletutor.com/#organization"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="CandleTutor home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav aria-label="Main navigation">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/lessons">Lessons</a>
+    <a href="/pricing">Pricing</a>
+    <a class="nav-cta" href="/#analyzer">Analyze a chart <span>↗</span></a>
+  </nav>
+</header>
+<main id="main-content" class="page-main">
+  <div class="page-wrap">
+    <nav class="breadcrumbs" aria-label="Breadcrumbs"><a href="https://www.candletutor.com/">Home</a><span aria-hidden="true">/</span><a href="https://www.candletutor.com/learn">Learn</a><span aria-hidden="true">/</span><span aria-current="page">RSI indicator explained</span></nav>
+    <header class="page-hero">
+      <p class="page-label">INDICATORS IN CONTEXT</p>
+      <h1>RSI indicator explained: how the Relative Strength Index works</h1>
+      <p class="lede">The Relative Strength Index (RSI) turns recent price changes into a number between 0 and 100. This guide explains how it is calculated, what the 70 and 30 levels mean, and why “overbought” is not a sell signal.</p>
+      <p class="article-meta">AI-assisted educational content · Reviewed for consistency · Not reviewed by an investment adviser · Updated November 7, 2026</p>
+    </header>
+    <div class="page-layout">
+      <article class="prose"><h2 id="what">What RSI measures</h2>
+<p>The Relative Strength Index was introduced by J. Welles Wilder in 1978. It compares the size of recent up moves with the size of recent down moves and shows the result on a scale from 0 to 100. It is a <strong>momentum oscillator</strong>: it describes how strongly price has moved lately relative to its recent history. It is usually drawn in a panel below the price chart, with horizontal lines at 70 and 30.</p>
+<h2 id="formula">How RSI is calculated</h2>
+<p>The standard setting is 14 periods. The calculation is:</p>
+<ol>
+<li>Over the last 14 periods, find the average of the gains (periods when price closed up) and the average of the losses (periods when price closed down).</li>
+<li>Divide the average gain by the average loss to get the relative strength (RS).</li>
+<li>RSI = 100 − 100 ÷ (1 + RS).</li>
+</ol>
+<p>Example: suppose the average gain is 1.0 and the average loss is 0.5. Then RS = 2 and RSI = 100 − 100 ÷ 3 ≈ <strong>66.7</strong>. If gains and losses were equal, RS would be 1 and RSI would be 50. After the first calculation, Wilder’s method smooths the averages: each new average equals (previous average × 13 + current value) ÷ 14. You do not need to compute this by hand, but knowing the logic helps you see that RSI depends on recent closes only and on the chosen period.</p>
+<h2 id="levels">The 70 and 30 levels</h2>
+<p>By convention, an RSI above 70 is called “overbought” and below 30 “oversold”. The words are misleading. They mean that price has moved strongly in one direction recently, not that it is due to reverse. In a strong uptrend RSI can remain above 70 for a long time; in a strong downtrend it can stay below 30. Selling only because RSI crossed 70 can mean exiting a trend early, and buying only because it dropped under 30 can mean buying into a continuing decline.</p>
+<p>Some analysts shift the zones in trending markets, treating readings around 40 to 50 as the typical floor of an uptrend and 50 to 60 as the ceiling of a downtrend. This is a heuristic, not a rule, and it varies by market.</p>
+<h2 id="divergence">Divergence</h2>
+<p>A <strong>bearish divergence</strong> occurs when price makes a higher high but RSI makes a lower high, suggesting upward momentum is weakening. A <strong>bullish divergence</strong> is the reverse: price makes a lower low while RSI makes a higher low. Divergences are popular because they sometimes appear near turning points, yet they can also persist while price keeps trending. Treat a divergence as a reason to look harder at the chart, such as checking <a href="/learn/support-and-resistance">support and resistance zones</a>, not as an entry by itself.</p>
+<h2 id="use">Using RSI sensibly</h2>
+<ul>
+<li><strong>Identify the market type first.</strong> RSI’s overbought and oversold readings are more useful in ranges than in strong trends.</li>
+<li><strong>Combine with structure.</strong> A reading that agrees with a clear level or the direction of the <a href="/learn/moving-averages">moving average</a> is more informative than one in isolation.</li>
+<li><strong>Keep settings stable.</strong> Shortening the period makes RSI jumpier; lengthening it makes it smoother. Changing it to fit the past is curve fitting.</li>
+<li><strong>Remember the volatility of the asset.</strong> Crypto can swing hard enough that RSI sits at extremes for days.</li>
+</ul>
+<h2 id="mistakes">Common mistakes</h2>
+<ul>
+<li>Treating 70 or 30 as automatic sell or buy signals.</li>
+<li>Ignoring the trend and trading only the oscillator.</li>
+<li>Expecting divergence to appear before every reversal.</li>
+<li>Stacking many similar indicators that all derive from the same closing prices and give the same information.</li>
+<li>Skipping risk planning because the indicator “looks clear”. See <a href="/learn/risk-management">risk management basics</a>.</li>
+</ul>
+<h2 id="faq">Frequently asked questions</h2>
+<h3>What is a good RSI number?</h3>
+<p>There is no good or bad number. Readings describe recent momentum. Above 50 means recent gains have outweighed losses; below 50 means the opposite.</p>
+<h3>What does RSI 70 mean?</h3>
+<p>That recent upward moves have been strong relative to recent downward moves. It does not mean price must fall.</p>
+<h3>What is the best RSI period?</h3>
+<p>The default is 14, as Wilder proposed. Shorter periods give more signals and more noise. The right choice depends on your timeframe, and constantly changing it is a warning sign.</p>
+<h3>Does RSI work for crypto?</h3>
+<p>The calculation works on any price series. Crypto’s volatility and 24/7 trading mean RSI can stay at extremes for long stretches, so context matters more.</p>
+<h2 id="related">Keep learning</h2>
+<ul><li><a href="/learn/technical-analysis">Technical analysis for beginners</a></li><li><a href="/learn/how-to-read-candlestick-charts">How to read candlestick charts</a></li><li><a href="/learn/candlestick-patterns">Candlestick patterns explained</a></li><li><a href="/learn/support-and-resistance">Support and resistance zones</a></li><li><a href="/learn/chart-patterns">How to read chart patterns carefully</a></li><li><a href="/learn/moving-averages">Moving averages explained</a></li></ul>
+<p>Prefer to practise on a real screenshot? Use the <a href="/#analyzer">chart analyzer</a> or work through the <a href="/lessons">structured lessons</a>.</p>
+<div class="callout warning"><p>This guide is educational and is not investment advice. Charts describe the past; they do not guarantee what happens next, and any trade can lose money.</p></div></article>
+      <aside class="page-aside">
+        <h2>On this page</h2>
+        <nav aria-label="On this page"><a href="#what">What RSI measures</a><a href="#formula">How RSI is calculated</a><a href="#levels">The 70 and 30 levels</a><a href="#divergence">Divergence</a><a href="#use">Using RSI sensibly</a><a href="#mistakes">Common mistakes</a><a href="#faq">Frequently asked questions</a><a href="#related">Keep learning</a></nav>
+        <a class="aside-cta" href="/#analyzer">Analyze a chart</a>
+      </aside>
+    </div>
+  </div>
+</main>
+<footer class="footer site-footer">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="/about">About</a><a href="/how-it-works">How it works</a><a href="/learn">Learning guides</a><a href="/faq">FAQ</a><a href="/pricing">Pricing</a><a href="/#risk">Risk statement</a>
+  <a href="/lessons">Trading lessons</a><a href="/privacy">Privacy</a></nav>
+  <span>Built for learning, not promises of profit.</span>
+</footer>
+<script src="/member.min.js?v=seo-20261031" defer></script>
+</body>
+</html>

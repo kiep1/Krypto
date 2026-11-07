@@ -11,6 +11,8 @@ services:
         value: 20
       - key: NODE_ENV
         value: production
+      - key: KEEP_ALIVE
+        value: "1"
       - key: APP_ORIGIN
         value: https://www.candletutor.com
       - key: OPENAI_MODEL

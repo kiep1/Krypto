@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="Moving averages explained: how SMA and EMA are calculated with worked examples, common periods (20, 50, 200), crossovers, lag, whipsaws and limits.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <title>Moving Averages Explained: SMA, EMA and How Traders Use Them | CandleTutor</title>
+  <link rel="canonical" href="https://www.candletutor.com/learn/moving-averages">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="CandleTutor">
+  <meta property="og:title" content="Moving Averages Explained: SMA, EMA and How Traders Use Them | CandleTutor">
+  <meta property="og:description" content="Moving averages explained: how SMA and EMA are calculated with worked examples, common periods (20, 50, 200), crossovers, lag, whipsaws and limits.">
+  <meta property="og:url" content="https://www.candletutor.com/learn/moving-averages">
+  <meta property="og:image" content="https://www.candletutor.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Moving Averages Explained: SMA, EMA and How Traders Use Them | CandleTutor">
+  <meta name="twitter:description" content="Moving averages explained: how SMA and EMA are calculated with worked examples, common periods (20, 50, 200), crossovers, lag, whipsaws and limits.">
+  <meta name="twitter:image" content="https://www.candletutor.com/og-image.png">
+  <link rel="icon" href="/favicon.png" sizes="192x192" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.min.css?v=seo-20261107">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.candletutor.com/#organization","name":"CandleTutor","url":"https://www.candletutor.com/"},{"@type":"WebSite","@id":"https://www.candletutor.com/#website","name":"CandleTutor","url":"https://www.candletutor.com/","inLanguage":"en","publisher":{"@id":"https://www.candletutor.com/#organization"}},{"@type":"WebPage","@id":"https://www.candletutor.com/learn/moving-averages#webpage","url":"https://www.candletutor.com/learn/moving-averages","name":"Moving averages explained: SMA, EMA and how traders use them | CandleTutor","description":"Moving averages explained: how SMA and EMA are calculated with worked examples, common periods (20, 50, 200), crossovers, lag, whipsaws and limits.","inLanguage":"en","isPartOf":{"@id":"https://www.candletutor.com/#website"},"breadcrumb":{"@id":"https://www.candletutor.com/learn/moving-averages#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://www.candletutor.com/learn/moving-averages#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.candletutor.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://www.candletutor.com/learn"},{"@type":"ListItem","position":3,"name":"Moving averages explained","item":"https://www.candletutor.com/learn/moving-averages"}]},{"@type":"Article","headline":"Moving averages explained: SMA, EMA and how traders use them","description":"Moving averages explained: how SMA and EMA are calculated with worked examples, common periods (20, 50, 200), crossovers, lag, whipsaws and limits.","mainEntityOfPage":"https://www.candletutor.com/learn/moving-averages","image":"https://www.candletutor.com/og-image.png","datePublished":"2026-11-07","dateModified":"2026-11-07","publisher":{"@id":"https://www.candletutor.com/#organization"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="CandleTutor home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav aria-label="Main navigation">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/lessons">Lessons</a>
+    <a href="/pricing">Pricing</a>
+    <a class="nav-cta" href="/#analyzer">Analyze a chart <span>↗</span></a>
+  </nav>
+</header>
+<main id="main-content" class="page-main">
+  <div class="page-wrap">
+    <nav class="breadcrumbs" aria-label="Breadcrumbs"><a href="https://www.candletutor.com/">Home</a><span aria-hidden="true">/</span><a href="https://www.candletutor.com/learn">Learn</a><span aria-hidden="true">/</span><span aria-current="page">Moving averages explained</span></nav>
+    <header class="page-hero">
+      <p class="page-label">INDICATORS IN CONTEXT</p>
+      <h1>Moving averages explained: SMA, EMA and how traders use them</h1>
+      <p class="lede">A moving average smooths price into a single line. This guide shows how the simple and exponential versions are calculated, how they are commonly used, and where they mislead.</p>
+      <p class="article-meta">AI-assisted educational content · Reviewed for consistency · Not reviewed by an investment adviser · Updated November 7, 2026</p>
+    </header>
+    <div class="page-layout">
+      <article class="prose"><h2 id="what">What a moving average is</h2>
+<p>A moving average (MA) is the average of a market’s recent prices, recalculated every period so the line “moves” with the chart. Most platforms use the closing price. Because it averages many candles, the line is smoother than price and makes the general direction easier to see.</p>
+<p>The key trade-off is <strong>lag</strong>. A moving average is built entirely from past prices, so it always trails the market. A shorter period reacts faster but is noisier; a longer period is smoother but slower.</p>
+<h2 id="sma">Simple moving average (SMA)</h2>
+<p>The SMA adds up the last <em>n</em> closing prices and divides by <em>n</em>. A worked example with a 5-period SMA:</p>
+<p>Closes of 10, 12, 11, 13 and 14 add up to 60, so the 5-period SMA is 60 ÷ 5 = <strong>12</strong>. When the next close is 15, the oldest value (10) drops out and the new one enters: 12, 11, 13, 14 and 15 add up to 65, so the SMA becomes 65 ÷ 5 = <strong>13</strong>.</p>
+<p>Every price in the window has equal weight, which makes the SMA easy to understand but slow to respond when a large move enters or leaves the window.</p>
+<h2 id="ema">Exponential moving average (EMA)</h2>
+<p>The EMA gives more weight to recent prices. It uses a multiplier of 2 ÷ (n + 1), so a 5-period EMA uses 2 ÷ 6 ≈ 0.333. Each new value is: (latest close − previous EMA) × multiplier + previous EMA.</p>
+<p>Example: if the previous EMA was 12 and the latest close is 15, the new EMA is (15 − 12) × 0.333 + 12 = <strong>13</strong>. The EMA reacts to new prices faster than an SMA of the same length, which some traders prefer and others find too jumpy. Neither is “correct”; they answer slightly different questions.</p>
+<h2 id="periods">Common periods</h2>
+<p>There is nothing magical about any particular number, but some are widely watched. The 20-period average is often used for short-term swings, the 50-period for the medium term and the 200-period as a long-term gauge, especially on daily charts. Because many people watch the same lines, those levels can sometimes attract attention, but this is a description of popularity, not a guarantee that price will react.</p>
+<p>Whatever you choose, keep it consistent, so you learn how the market behaves around that line instead of changing settings until the chart looks convincing.</p>
+<h2 id="uses">How moving averages are commonly used</h2>
+<ul>
+<li><strong>Trend filter.</strong> Price mostly above a rising average is often described as upward structure; price mostly below a falling average as downward structure. The slope matters as much as the position.</li>
+<li><strong>Dynamic support or resistance.</strong> Price sometimes pauses near a widely watched average. Treat this as an area to observe, like the zones in <a href="/learn/support-and-resistance">support and resistance zones</a>, not a precise line.</li>
+<li><strong>Crossovers.</strong> When a faster average crosses a slower one, some traders read it as a change in momentum. The 50-day crossing above the 200-day is often called a “golden cross” and the opposite a “death cross”. These are lagging events: by the time they occur, a good part of the move has usually happened.</li>
+<li><strong>Distance from the average.</strong> When price is far from its average, some traders consider the move stretched. Stretched markets can stay stretched for a long time.</li>
+</ul>
+<h2 id="limits">Where moving averages mislead</h2>
+<ul>
+<li><strong>Whipsaws in ranges.</strong> When price moves sideways, it crosses its average repeatedly. Each crossover can look like a signal, yet none leads anywhere.</li>
+<li><strong>Lag.</strong> Averages confirm what has already happened. In sharp reversals, they react late.</li>
+<li><strong>Curve fitting.</strong> Trying many periods until one fits the past perfectly almost always fails on new data.</li>
+<li><strong>False precision.</strong> A line on a chart looks exact, but it is an average of noisy data.</li>
+</ul>
+<p>Moving averages work best as a way to describe context, alongside structure and risk planning, rather than as a standalone system. Other indicators answer different questions; see the <a href="/learn/rsi-indicator">RSI guide</a> for a momentum example.</p>
+<h2 id="checklist">A practical checklist</h2>
+<ol>
+<li>Which type (SMA or EMA) and which periods are on the chart, and why?</li>
+<li>Is the average sloping up, down or flat?</li>
+<li>Is price trending or moving sideways? Averages are less useful in ranges.</li>
+<li>What would a crossover or a close back through the line tell you that price structure does not?</li>
+<li>What is your plan if the interpretation fails? See <a href="/learn/risk-management">risk management basics</a>.</li>
+</ol>
+<h2 id="faq">Frequently asked questions</h2>
+<h3>Which is better, SMA or EMA?</h3>
+<p>Neither is universally better. The EMA reacts faster and is noisier; the SMA is smoother and slower. Choose one, understand how it behaves on your market and timeframe, and keep your settings stable.</p>
+<h3>What is the best moving average setting?</h3>
+<p>There is no best setting. The 20, 50 and 200 are common because many people use them, not because they are optimal.</p>
+<h3>Do moving averages predict price?</h3>
+<p>No. They summarise past prices. They can help describe trend and context, but they do not forecast what comes next.</p>
+<h3>What is a golden cross?</h3>
+<p>A golden cross is when a shorter average, typically the 50-day, rises above a longer one, typically the 200-day. It is a lagging description of momentum, and it can fail, particularly in sideways markets.</p>
+<h2 id="related">Keep learning</h2>
+<ul><li><a href="/learn/technical-analysis">Technical analysis for beginners</a></li><li><a href="/learn/how-to-read-candlestick-charts">How to read candlestick charts</a></li><li><a href="/learn/candlestick-patterns">Candlestick patterns explained</a></li><li><a href="/learn/support-and-resistance">Support and resistance zones</a></li><li><a href="/learn/chart-patterns">How to read chart patterns carefully</a></li><li><a href="/learn/rsi-indicator">RSI indicator explained</a></li></ul>
+<p>Prefer to practise on a real screenshot? Use the <a href="/#analyzer">chart analyzer</a> or work through the <a href="/lessons">structured lessons</a>.</p>
+<div class="callout warning"><p>This guide is educational and is not investment advice. Charts describe the past; they do not guarantee what happens next, and any trade can lose money.</p></div></article>
+      <aside class="page-aside">
+        <h2>On this page</h2>
+        <nav aria-label="On this page"><a href="#what">What a moving average is</a><a href="#sma">Simple moving average (SMA)</a><a href="#ema">Exponential moving average (EMA)</a><a href="#periods">Common periods</a><a href="#uses">How moving averages are commonly used</a><a href="#limits">Where moving averages mislead</a><a href="#checklist">A practical checklist</a><a href="#faq">Frequently asked questions</a><a href="#related">Keep learning</a></nav>
+        <a class="aside-cta" href="/#analyzer">Analyze a chart</a>
+      </aside>
+    </div>
+  </div>
+</main>
+<footer class="footer site-footer">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="/about">About</a><a href="/how-it-works">How it works</a><a href="/learn">Learning guides</a><a href="/faq">FAQ</a><a href="/pricing">Pricing</a><a href="/#risk">Risk statement</a>
+  <a href="/lessons">Trading lessons</a><a href="/privacy">Privacy</a></nav>
+  <span>Built for learning, not promises of profit.</span>
+</footer>
+<script src="/member.min.js?v=seo-20261031" defer></script>
+</body>
+</html>

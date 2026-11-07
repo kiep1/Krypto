@@ -11,6 +11,31 @@ const membership = require('./membership');
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.disable('x-powered-by');
+
+// --- Crawl-critical routes: registered BEFORE sessions/database middleware so a slow or
+// unavailable database can never turn robots.txt or the sitemap into a 5xx/timeout.
+// (Google treats an unreachable robots.txt as "crawling not allowed" for the whole site.)
+const SITE_ORIGIN = 'https://www.candletutor.com';
+app.use((req, res, next) => {
+  if ((req.headers.host || '').toLowerCase() === 'candletutor.com') {
+    return res.redirect(301, SITE_ORIGIN + req.originalUrl);
+  }
+  next();
+});
+const ROBOTS_TXT = ['User-agent: *', 'Allow: /', 'Disallow: /api/', '', `Sitemap: ${SITE_ORIGIN}/sitemap.xml`, ''].join('\n');
+app.get('/robots.txt', (_req, res) => {
+  res.status(200).set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' }).send(ROBOTS_TXT);
+});
+app.get('/sitemap.xml', (_req, res) => {
+  res.set({ 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+  res.sendFile(path.join(__dirname, 'sitemap.xml'));
+});
+app.get('/llms.txt', (_req, res) => {
+  res.set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+  res.sendFile(path.join(__dirname, 'llms.txt'));
+});
+app.get('/og-image.png', (_req, res) => res.sendFile(path.join(__dirname, 'og-image.png'), { maxAge: '7d' }));
+
 membership.registerWebhook(app);
 membership.configureAuthentication(app);
 app.use(express.json({ limit: '1mb' }));
@@ -39,6 +64,11 @@ const pageRoutes = new Map([
   ['/learn/risk-management', 'guides/risk-management.html'],
   ['/learn/support-and-resistance', 'guides/support-and-resistance.html'],
   ['/learn/chart-patterns', 'guides/chart-patterns.html'],
+  ['/learn/candlestick-patterns', 'guides/candlestick-patterns.html'],
+  ['/learn/how-to-read-candlestick-charts', 'guides/how-to-read-candlestick-charts.html'],
+  ['/learn/moving-averages', 'guides/moving-averages.html'],
+  ['/learn/rsi-indicator', 'guides/rsi-indicator.html'],
+  ['/learn/position-size-calculator', 'guides/position-size-calculator.html'],
   ['/faq', 'faq.html'],
   ['/pricing', 'pricing.html'],
   ['/premium', 'premium.html']
@@ -75,9 +105,6 @@ app.get('/account.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'acc
 app.get('/journal.min.js', (_req, res) => res.sendFile(path.join(__dirname, 'journal.min.js'), { maxAge: '1y', immutable: true }));
 app.get('/favicon.svg', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.svg'), { maxAge: '7d' }));
 app.get('/favicon.png', (_req, res) => res.sendFile(path.join(__dirname, 'favicon.png'), { maxAge: '1y', immutable: true }));
-app.get('/robots.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt')));
-app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'sitemap.xml')));
-app.get('/llms.txt', (_req, res) => res.type('text/plain').sendFile(path.join(__dirname, 'llms.txt')));
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -142,6 +169,7 @@ app.get('/lessons/:slug', async (req, res, next) => {
       title: escapeHtml(`${lesson.title} | CandleTutor`),
       description: escapeHtml(lesson.summary),
       canonical,
+      robots: locked || memberContentUnavailable ? 'noindex,follow' : 'index,follow,max-image-preview:large',
       lessonTitle: escapeHtml(lesson.title),
       lessonSlug: lesson.slug,
       summary: escapeHtml(lesson.summary),
@@ -244,9 +272,15 @@ app.use((err, _req, res, _next) => {
   res.status(400).json({ error: err.message || 'Invalid request.' });
 });
 
+// Listen immediately so crawlers and health checks never wait on database start-up.
+app.listen(PORT, () => console.log(`CandleTutor is running on port ${PORT}`));
 membership.initializeDatabase()
-  .then(() => app.listen(PORT, () => console.log(`CandleTutor is running on port ${PORT}`)))
-  .catch((error) => {
-    console.error('Database initialization failed; member features remain disabled:', error.message);
-    app.listen(PORT, () => console.log(`CandleTutor is running on port ${PORT} without member features`));
-  });
+  .then(() => console.log('Database ready'))
+  .catch((error) => console.error('Database initialization failed; member features remain disabled:', error.message));
+
+// Free-tier hosts spin the app down after ~15 min without traffic; a cold start can make Googlebot time out.
+// Opt-in stop-gap (KEEP_ALIVE=1). The proper fix is a paid always-on instance.
+if (process.env.KEEP_ALIVE === '1') {
+  const keepAliveUrl = `${process.env.APP_ORIGIN || SITE_ORIGIN}/api/health`;
+  setInterval(() => { fetch(keepAliveUrl).catch(() => {}); }, 10 * 60 * 1000).unref();
+}

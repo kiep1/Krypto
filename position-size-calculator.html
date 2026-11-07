@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="Free position size calculator: enter account size, risk percent, entry and stop to see units, position value and reward-to-risk, plus the formula explained.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <title>Position Size Calculator: How Much to Risk on a Trade | CandleTutor</title>
+  <link rel="canonical" href="https://www.candletutor.com/learn/position-size-calculator">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="CandleTutor">
+  <meta property="og:title" content="Position Size Calculator: How Much to Risk on a Trade | CandleTutor">
+  <meta property="og:description" content="Free position size calculator: enter account size, risk percent, entry and stop to see units, position value and reward-to-risk, plus the formula explained.">
+  <meta property="og:url" content="https://www.candletutor.com/learn/position-size-calculator">
+  <meta property="og:image" content="https://www.candletutor.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Position Size Calculator: How Much to Risk on a Trade | CandleTutor">
+  <meta name="twitter:description" content="Free position size calculator: enter account size, risk percent, entry and stop to see units, position value and reward-to-risk, plus the formula explained.">
+  <meta name="twitter:image" content="https://www.candletutor.com/og-image.png">
+  <link rel="icon" href="/favicon.png" sizes="192x192" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.min.css?v=seo-20261107">
+  <style>
+    .calc{background:#101626;border:1px solid #232c47;border-radius:14px;padding:20px;margin:18px 0 28px}
+    .calc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+    .calc label{display:block;font-size:.85rem;color:#b9c0dc;margin-bottom:6px}
+    .calc input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid #2e3858;background:#090d18;color:#fff;font:inherit}
+    .calc input:focus{outline:2px solid #70f0c0;outline-offset:1px}
+    .calc-out{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .calc-out div{background:#090d18;border:1px solid #232c47;border-radius:10px;padding:12px}
+    .calc-out small{display:block;color:#9aa3c7;font-size:.78rem;margin-bottom:4px}
+    .calc-out strong{font-size:1.15rem;color:#70f0c0}
+    .calc-msg{margin-top:12px;color:#ffb4b4;min-height:1.2em}
+    .data-table{width:100%;border-collapse:collapse;margin:14px 0}
+    .data-table th,.data-table td{border-bottom:1px solid #232c47;padding:9px 8px;text-align:left}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.candletutor.com/#organization","name":"CandleTutor","url":"https://www.candletutor.com/"},{"@type":"WebSite","@id":"https://www.candletutor.com/#website","name":"CandleTutor","url":"https://www.candletutor.com/","inLanguage":"en","publisher":{"@id":"https://www.candletutor.com/#organization"}},{"@type":"WebPage","@id":"https://www.candletutor.com/learn/position-size-calculator#webpage","url":"https://www.candletutor.com/learn/position-size-calculator","name":"Position size calculator: how much to risk on a trade | CandleTutor","description":"Free position size calculator: enter account size, risk percent, entry and stop to see units, position value and reward-to-risk, plus the formula explained.","inLanguage":"en","isPartOf":{"@id":"https://www.candletutor.com/#website"},"breadcrumb":{"@id":"https://www.candletutor.com/learn/position-size-calculator#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://www.candletutor.com/learn/position-size-calculator#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.candletutor.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://www.candletutor.com/learn"},{"@type":"ListItem","position":3,"name":"Position size calculator","item":"https://www.candletutor.com/learn/position-size-calculator"}]},{"@type":"Article","headline":"Position size calculator: how much to risk on a trade","description":"Free position size calculator: enter account size, risk percent, entry and stop to see units, position value and reward-to-risk, plus the formula explained.","mainEntityOfPage":"https://www.candletutor.com/learn/position-size-calculator","image":"https://www.candletutor.com/og-image.png","datePublished":"2026-11-07","dateModified":"2026-11-07","publisher":{"@id":"https://www.candletutor.com/#organization"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="CandleTutor home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav aria-label="Main navigation">
+    <a href="/how-it-works">How it works</a>
+    <a href="/learn">Learn</a>
+    <a href="/lessons">Lessons</a>
+    <a href="/pricing">Pricing</a>
+    <a class="nav-cta" href="/#analyzer">Analyze a chart <span>↗</span></a>
+  </nav>
+</header>
+<main id="main-content" class="page-main">
+  <div class="page-wrap">
+    <nav class="breadcrumbs" aria-label="Breadcrumbs"><a href="https://www.candletutor.com/">Home</a><span aria-hidden="true">/</span><a href="https://www.candletutor.com/learn">Learn</a><span aria-hidden="true">/</span><span aria-current="page">Position size calculator</span></nav>
+    <header class="page-hero">
+      <p class="page-label">RISK MANAGEMENT</p>
+      <h1>Position size calculator: how much to risk on a trade</h1>
+      <p class="lede">Position sizing turns a risk limit into a number of units. Use the free calculator below, then read how the formula works and why small risk per trade matters more than any entry.</p>
+      <p class="article-meta">AI-assisted educational content · Reviewed for consistency · Not reviewed by an investment adviser · Updated November 7, 2026</p>
+    </header>
+    <div class="page-layout">
+      <article class="prose"><h2 id="calculator-tool">Position size calculator</h2>
+<div class="calc" id="calculator">
+  <div class="calc-grid">
+    <div><label for="c-account">Account size</label><input id="c-account" type="number" inputmode="decimal" min="0" step="any" value="5000"></div>
+    <div><label for="c-risk">Risk per trade (%)</label><input id="c-risk" type="number" inputmode="decimal" min="0" step="any" value="1"></div>
+    <div><label for="c-entry">Entry price</label><input id="c-entry" type="number" inputmode="decimal" min="0" step="any" value="100"></div>
+    <div><label for="c-stop">Stop-loss price</label><input id="c-stop" type="number" inputmode="decimal" min="0" step="any" value="95"></div>
+    <div><label for="c-target">Take-profit price (optional)</label><input id="c-target" type="number" inputmode="decimal" min="0" step="any" value="115"></div>
+  </div>
+  <div class="calc-out" aria-live="polite">
+    <div><small>Amount at risk</small><strong id="o-risk">–</strong></div>
+    <div><small>Risk per unit</small><strong id="o-unit">–</strong></div>
+    <div><small>Position size (units)</small><strong id="o-size">–</strong></div>
+    <div><small>Position value</small><strong id="o-value">–</strong></div>
+    <div><small>Position as % of account</small><strong id="o-pct">–</strong></div>
+    <div><small>Reward : risk</small><strong id="o-rr">–</strong></div>
+  </div>
+  <p class="calc-msg" id="c-msg" role="status"></p>
+  <p><small>Calculations run in your browser; nothing is sent or stored. Results ignore fees, slippage and gaps, so real losses can be larger than the planned amount.</small></p>
+</div>
+<h2 id="formula">The formula</h2>
+<p>Position sizing starts from how much you are willing to lose if the trade fails, not from how much you want to buy:</p>
+<ol>
+<li><strong>Amount at risk</strong> = account size × risk percentage.</li>
+<li><strong>Risk per unit</strong> = the distance between your entry and your stop-loss.</li>
+<li><strong>Position size</strong> = amount at risk ÷ risk per unit.</li>
+</ol>
+<p>Worked example: with a 5,000 account and 1% risk, the amount at risk is 50. If the entry is 100 and the stop is 95, risk per unit is 5, so the position size is 50 ÷ 5 = <strong>10 units</strong>, a position value of 1,000. If the stop is hit, the planned loss is about 50, or 1% of the account. A wider stop produces a smaller position and a tighter stop a larger one, but the planned loss stays the same.</p>
+<h2 id="why">Why small risk per trade matters</h2>
+<p>Losses compound against you, and recovery gets harder as the drawdown grows. A 50% loss needs a 100% gain to break even. Look at what ten losses in a row would do to an account at different risk levels:</p>
+<table class="data-table"><thead><tr><th>Risk per trade</th><th>Account after 10 straight losses</th><th>Drawdown</th></tr></thead><tbody>
+<tr><td>1%</td><td>90.4%</td><td>−9.6%</td></tr>
+<tr><td>2%</td><td>81.7%</td><td>−18.3%</td></tr>
+<tr><td>5%</td><td>59.9%</td><td>−40.1%</td></tr>
+<tr><td>10%</td><td>34.9%</td><td>−65.1%</td></tr>
+</tbody></table>
+<p>Even a method with a good hit rate will have losing streaks. Many educators suggest keeping the risk per trade to a small single-digit percentage, often 1% or less for beginners, but the right figure depends on your situation and tolerance and is a personal decision.</p>
+<h2 id="stops">Where the stop should come from</h2>
+<p>The stop-loss should be placed where your trade idea is shown to be wrong, for example beyond a level that, if broken, would invalidate your scenario (see <a href="/learn/support-and-resistance">support and resistance zones</a>). The position size then adapts to that distance. The reverse approach, picking a position size first and then squeezing the stop to fit, tends to place stops at random points where ordinary noise can trigger them.</p>
+<h2 id="limits">What the calculator does not include</h2>
+<ul>
+<li><strong>Fees and spreads.</strong> They add to the real cost of every trade and enlarge losses.</li>
+<li><strong>Slippage and gaps.</strong> A stop order is not a guarantee of exit at that price; fast markets can fill you beyond it.</li>
+<li><strong>Leverage.</strong> Borrowed exposure can lose the whole margin quickly, and liquidation can happen before your stop in extreme conditions.</li>
+<li><strong>Correlation.</strong> Several positions in similar assets, such as many cryptocurrencies, can lose together, so the combined risk is larger than each position suggests.</li>
+</ul>
+<p>For the wider picture, read <a href="/learn/risk-management">risk management basics</a>. To practise reading the chart that leads to the stop and entry, start with <a href="/learn/technical-analysis">technical analysis for beginners</a>.</p>
+<h2 id="faq">Frequently asked questions</h2>
+<h3>What percentage of my account should I risk per trade?</h3>
+<p>There is no single right answer. Many educators suggest small amounts, often 1% or less for beginners, so that a losing streak does not cause serious damage. The decision depends on your finances and tolerance for loss.</p>
+<h3>Does leverage change the position size formula?</h3>
+<p>The risk-based formula stays the same: the planned loss is still the account size times the risk percentage. Leverage only changes how much margin you need, and it adds liquidation risk.</p>
+<h3>Can I use this for crypto, forex and stocks?</h3>
+<p>The arithmetic is the same for any market that quotes a price. Check the contract size or minimum order size of your platform, since the number of units may need to be rounded.</p>
+<h2 id="related">Keep learning</h2>
+<ul><li><a href="/learn/technical-analysis">Technical analysis for beginners</a></li><li><a href="/learn/how-to-read-candlestick-charts">How to read candlestick charts</a></li><li><a href="/learn/candlestick-patterns">Candlestick patterns explained</a></li><li><a href="/learn/support-and-resistance">Support and resistance zones</a></li><li><a href="/learn/chart-patterns">How to read chart patterns carefully</a></li><li><a href="/learn/moving-averages">Moving averages explained</a></li></ul>
+<p>Prefer to practise on a real screenshot? Use the <a href="/#analyzer">chart analyzer</a> or work through the <a href="/lessons">structured lessons</a>.</p>
+<div class="callout warning"><p>This guide is educational and is not investment advice. Charts describe the past; they do not guarantee what happens next, and any trade can lose money.</p></div></article>
+      <aside class="page-aside">
+        <h2>On this page</h2>
+        <nav aria-label="On this page"><a href="#calculator-tool">Position size calculator</a><a href="#formula">The formula</a><a href="#why">Why small risk per trade matters</a><a href="#stops">Where the stop should come from</a><a href="#limits">What the calculator does not include</a><a href="#faq">Frequently asked questions</a><a href="#related">Keep learning</a></nav>
+        <a class="aside-cta" href="/#analyzer">Analyze a chart</a>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ['c-account', 'c-risk', 'c-entry', 'c-stop', 'c-target'];
+  function fmt(n, d) { return isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: d }) : '–'; }
+  function calc() {
+    var a = parseFloat($('c-account').value), r = parseFloat($('c-risk').value),
+        e = parseFloat($('c-entry').value), s = parseFloat($('c-stop').value), t = parseFloat($('c-target').value);
+    var out = ['o-risk', 'o-unit', 'o-size', 'o-value', 'o-pct', 'o-rr'];
+    var msg = '';
+    out.forEach(function (id) { $(id).textContent = '–'; });
+    if (!(a > 0 && r > 0 && e > 0 && s > 0)) { $('c-msg').textContent = 'Enter positive numbers for account, risk, entry and stop.'; return; }
+    if (e === s) { $('c-msg').textContent = 'Entry and stop cannot be the same price.'; return; }
+    if (r > 100) { $('c-msg').textContent = 'Risk per trade cannot exceed 100%.'; return; }
+    var riskAmt = a * r / 100, perUnit = Math.abs(e - s), size = riskAmt / perUnit, value = size * e;
+    $('o-risk').textContent = fmt(riskAmt, 2);
+    $('o-unit').textContent = fmt(perUnit, 6);
+    $('o-size').textContent = fmt(size, 6);
+    $('o-value').textContent = fmt(value, 2);
+    $('o-pct').textContent = fmt(value / a * 100, 1) + '%';
+    if (t > 0) {
+      var long = e > s;
+      if ((long && t > e) || (!long && t < e)) { $('o-rr').textContent = '1 : ' + fmt(Math.abs(t - e) / perUnit, 2); }
+      else { msg = 'The take-profit is on the wrong side of the entry for this direction.'; }
+    }
+    if (value > a) { msg = (msg ? msg + ' ' : '') + 'Position value exceeds the account size, so it would require leverage or margin, which adds its own risks.'; }
+    $('c-msg').textContent = msg;
+  }
+  ids.forEach(function (id) { $(id).addEventListener('input', calc); });
+  calc();
+})();
+</script>
+</main>
+<footer class="footer site-footer">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" focusable="false"><path d="M20 7v26" stroke="#70f0c0" stroke-width="2" stroke-linecap="round"/><rect x="14" y="14" width="12" height="13" rx="2" fill="#70f0c0"/><path d="M16 18h8" stroke="#101626" stroke-width="1.5" stroke-linecap="round"/><path d="M20 5v2M20 33v2" stroke="#a99bff" stroke-width="2" stroke-linecap="round"/></svg></span><span>CandleTutor</span></a>
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="/about">About</a><a href="/how-it-works">How it works</a><a href="/learn">Learning guides</a><a href="/faq">FAQ</a><a href="/pricing">Pricing</a><a href="/#risk">Risk statement</a>
+  <a href="/lessons">Trading lessons</a><a href="/privacy">Privacy</a></nav>
+  <span>Built for learning, not promises of profit.</span>
+</footer>
+<script src="/member.min.js?v=seo-20261031" defer></script>
+</body>
+</html>

@@ -11,6 +11,11 @@
 - [Technical analysis](https://www.candletutor.com/learn/technical-analysis): Beginner guide to chart structure, evidence, and uncertainty.
 - [Chart patterns](https://www.candletutor.com/learn/chart-patterns): Learn to treat patterns as hypotheses that need context.
 - [Risk management](https://www.candletutor.com/learn/risk-management): Educational information about uncertainty and risk controls.
+- [How to read candlestick charts](https://www.candletutor.com/learn/how-to-read-candlestick-charts): Open, high, low, close, bodies and wicks explained for beginners, with a practice routine.
+- [Candlestick patterns explained](https://www.candletutor.com/learn/candlestick-patterns): Doji, hammer, engulfing, harami and star patterns, and why context beats the name.
+- [Moving averages explained](https://www.candletutor.com/learn/moving-averages): How SMA and EMA are calculated, common periods, crossovers, lag and whipsaws.
+- [RSI indicator explained](https://www.candletutor.com/learn/rsi-indicator): The formula, the 70 and 30 levels, divergence and why overbought is not a sell signal.
+- [Position size calculator](https://www.candletutor.com/learn/position-size-calculator): Free calculator that turns a risk limit and a stop into a position size.
 - [Frequently asked questions](https://www.candletutor.com/faq): Product, privacy, analysis, and subscription answers.
 - [Pricing](https://www.candletutor.com/pricing): Free and Premium plan limits and billing terms.
 - [About CandleTutor](https://www.candletutor.com/about): Product purpose and limitations.

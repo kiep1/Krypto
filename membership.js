@@ -34,7 +34,8 @@ const utcDate = () => new Date().toISOString().slice(0, 10);
 const pool = process.env.DATABASE_URL ? new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: 30000
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 8000
 }) : null;
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 let databaseReady = false;
